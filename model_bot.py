@@ -89,8 +89,7 @@ class Reinforcement_bot(BotAI):  # inherits from BotAI (part of BurnySC2)
 
         reward = await chosen_action_lst[0]()
 
-        self.features_extractor.update(action)
-        feature_state = self.features_extractor.generate_vectors()
+        feature_state = self.features_extractor.generate_vectors(action)
 
         self.took_damage = False
 
