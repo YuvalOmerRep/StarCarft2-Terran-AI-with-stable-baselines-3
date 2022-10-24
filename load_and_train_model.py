@@ -29,3 +29,22 @@ def load_and_train(model_name: str, from_num_steps, new_model_name: str, env: Sc
         iters += 1
         model.learn(total_timesteps=GB.total_steps, reset_num_timesteps=False, tb_log_name=f"PPO")
         model.save(f"{models_dir}/{GB.total_steps * iters}")
+
+
+if __name__ == '__main__':
+    LOAD_MODEL = f"models/"  # change to the model to continue training on
+
+    # load the model:
+    model = PPO.load(LOAD_MODEL, env=Sc2Env())
+
+    model_name = f"{LOAD_MODEL}_{int(time.time())}"
+
+    models_dir = f"models/{model_name}/"
+
+    # further train:
+    iters = 0
+    while True:
+        print("On iteration: ", iters)
+        iters += 1
+        model.learn(total_timesteps=GB.total_steps, reset_num_timesteps=False, tb_log_name=f"PPO")
+        model.save(f"{models_dir}/{GB.total_steps * iters}")

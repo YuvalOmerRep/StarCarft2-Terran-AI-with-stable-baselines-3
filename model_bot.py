@@ -7,22 +7,22 @@ from sc2 import maps  # maps method for loading maps to play in.
 import numpy as np
 import sys
 import pickle
-from feature_extraction import Extractor
+from Feature_Extractors import basic_feature_extractor
 import Terran_Strategy as TS
 import Globals as GB
-from Rewards import Reward_attacking_and_units, Reward_damage_and_unit, Reward_damage_and_unit_with_step_punishment
+from Rewards import Reward_damage_and_unit_with_step_punishment
 from Rewards import Reward_end_game
 from sc2.ids.unit_typeid import UnitTypeId as UId
 
 end_game_reward = 0
 
 
-class reinforcement_bot(BotAI):  # inhereits from BotAI (part of BurnySC2)
+class Reinforcement_bot(BotAI):  # inherits from BotAI (part of BurnySC2)
     def __init__(self, reward_system):
         super().__init__()
         self.end_game = Reward_end_game(self)
         self.strategy = TS.Random_Strategy(self)
-        self.features_extractor = Extractor(self)
+        self.features_extractor = basic_feature_extractor(self)
         self.reward_system = reward_system(self)
         self.units_dict_tags = dict()
         self.my_units_died_since_last_action = []
@@ -172,8 +172,8 @@ class reinforcement_bot(BotAI):  # inhereits from BotAI (part of BurnySC2)
 
 
 result = run_game(maps.get("JagannathaAIE"),
-                  [Bot(Race.Terran, reinforcement_bot(Reward_damage_and_unit_with_step_punishment)),
-                   Computer(Race.Protoss, Difficulty.Easy)], realtime=False, disable_fog=True)
+                  [Bot(Race.Terran, Reinforcement_bot(Reward_damage_and_unit_with_step_punishment)),
+                   Computer(Race.Protoss, Difficulty.Easy)], realtime=False)
 
 if str(result) == "Result.Victory":
     rwd = 500

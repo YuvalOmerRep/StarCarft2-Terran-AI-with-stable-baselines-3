@@ -43,7 +43,7 @@ MINERAL_CLOSER_THAN_DISTANCE = 15
 
 # constants for stable-baselines3 use
 OBSERVATION_SPACE_SHAPE = (80,)
-ACTION_SPACE_SIZE = 20
+ACTION_SPACE_SIZE = 30
 LOW_BOUND = np.NINF
 HIGH_BOUND = np.Inf
 
@@ -71,6 +71,3 @@ protoss_structures_list = [UId.ASSIMILATOR, UId.CYBERNETICSCORE, UId.DARKSHRINE,
 terran_unit_list = [UId.MARINE, UId.SIEGETANK, UId.MEDIVAC, UId.MARAUDER]
 terran_structures_list = [UId.SUPPLYDEPOT, UId.BARRACKS, UId.FACTORY, UId.STARPORT, UId.COMMANDCENTER,
                           UId.ENGINEERINGBAY, UId.ARMORY]
-
-# constants for run tree:
-STEPS_BEFORE_ACTIONS = 20
