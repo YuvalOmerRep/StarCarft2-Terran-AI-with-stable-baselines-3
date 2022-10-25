@@ -1,6 +1,8 @@
 from sc2.bot_ai import BotAI
 import numpy as np
 from sc2.ids.unit_typeid import UnitTypeId as UId
+from sc2.ids.buff_id import BuffId as BId
+from sc2.ids.upgrade_id import UpgradeId as UpId
 import Globals
 
 
@@ -25,7 +27,30 @@ class basic_feature_extractor(Extractor):
         super().__init__(bot)
 
     def generate_vectors(self, action: int) -> np.array:
-        vector = [action, self.bot_to_extract_from.minerals, self.bot_to_extract_from.vespene]
+        is_stimmed = 0
+        for marine in self.bot_to_extract_from.units(UId.MARINE):
+            if marine.has_buff(BId.STIMPACK):
+                is_stimmed = 1
+                break
+
+        if not is_stimmed:
+            for maruder in self.bot_to_extract_from.units(UId.MARAUDER):
+                if maruder.has_buff(BId.STIMPACK):
+                    is_stimmed = 1
+                    break
+
+        vector = [action, self.bot_to_extract_from.minerals, self.bot_to_extract_from.vespene,
+                  self.bot_to_extract_from.supply_used, self.bot_to_extract_from.supply_cap, is_stimmed,
+                  self.bot_to_extract_from.already_pending_upgrade(UpId.TERRANINFANTRYWEAPONSLEVEL1),
+                  self.bot_to_extract_from.already_pending_upgrade(UpId.TERRANINFANTRYWEAPONSLEVEL2),
+                  self.bot_to_extract_from.already_pending_upgrade(UpId.TERRANINFANTRYWEAPONSLEVEL3),
+                  self.bot_to_extract_from.already_pending_upgrade(UpId.TERRANINFANTRYARMORSLEVEL1),
+                  self.bot_to_extract_from.already_pending_upgrade(UpId.TERRANINFANTRYARMORSLEVEL2),
+                  self.bot_to_extract_from.already_pending_upgrade(UpId.TERRANINFANTRYARMORSLEVEL3),
+                  self.bot_to_extract_from.already_pending_upgrade(UpId.STIMPACK),
+                  self.bot_to_extract_from.already_pending_upgrade(UpId.SHIELDWALL)
+                  ]
+
         vector += \
             [get_amount(i, self.bot_to_extract_from.units)
              for i in Globals.terran_unit_list]  # ally_units
