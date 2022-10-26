@@ -11,7 +11,7 @@ def run_single_game():
     my_bot = Bot(Race.Terran, RandomTerranBot())
     computer = Computer(Race.Protoss, Difficulty.VeryEasy)
     print(run_game(maps.get("JagannathaAIE"), [my_bot, computer],
-                   realtime=False, disable_fog=True))
+                   realtime=False))
 
 
 def run_num_of_games_against_same_computer(num: int, difficulty, my_bot):
@@ -28,3 +28,7 @@ def run_num_of_games_against_same_computer(num: int, difficulty, my_bot):
 
     print(f"Random Bot has won {results_my_bot[Result.Victory]}, lost {results_my_bot[Result.Defeat]} and tied "
           f"{results_my_bot[Result.Tie]} in {num} games against a computer with {difficulty} difficulty")
+
+
+if __name__ == '__main__':
+    run_single_game()

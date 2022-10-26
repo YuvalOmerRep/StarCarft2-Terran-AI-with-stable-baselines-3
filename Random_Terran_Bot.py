@@ -2,22 +2,51 @@ from sc2.bot_ai import BotAI
 from sc2.unit import Unit, AbilityId
 import Terran_Strategy as TS
 from Feature_Extractors import basic_feature_extractor
+import Globals as GB
 
 
 class RandomTerranBot(BotAI):
 
     def __init__(self):
-        self.took_damage = False
-        all_expansions_locations_sorted = self.start_location.sort_by_distance(self.expansion_locations_list)
-
-        self.strategy = TS.Random_Strategy(self, all_expansions_locations_sorted)
-        self.features_extractor = basic_feature_extractor(self, all_expansions_locations_sorted)
-
         super().__init__()
 
-    async def on_step(self, iteration: int):
+        self.took_damage = False
 
-        await self.strategy.strategize()
+        self.strategy = TS.Random_Strategy(self)
+        self.features_extractor = basic_feature_extractor(self)
+
+    async def on_step(self, iteration: int):
+        if iteration == GB.START_ITERATION:
+            all_expansions_locations_sorted = self.start_location.sort_by_distance(self.expansion_locations_list)
+            await self.features_extractor.initialize_location_list(all_expansions_locations_sorted)
+            await self.strategy.initialize_location_list(all_expansions_locations_sorted)
+
+        elif iteration > GB.START_ITERATION:
+            await self.strategy.strategize()
+
+            vec = self.features_extractor.generate_vectors(0, iteration)
+
+            print(f"minerals: {vec[0]}")
+            print(f"vespene: {vec[1]}")
+            print(f"iteration: {vec[2]}")
+            print(f"supply used: {vec[3]}")
+            print(f"supply cap: {vec[4]}")
+            print(f"is_stimmed: {vec[5]}")
+            print(f"has_energy: {vec[6]}")
+            print(f"TERRANINFANTRYWEAPONSLEVEL1: {vec[7]}")
+            print(f"TERRANINFANTRYWEAPONSLEVEL2: {vec[8]}")
+            print(f"TERRANINFANTRYWEAPONSLEVEL3: {vec[9]}")
+            print(f"TERRANINFANTRYARMORSLEVEL1: {vec[10]}")
+            print(f"TERRANINFANTRYARMORSLEVEL2: {vec[11]}")
+            print(f"TERRANINFANTRYARMORSLEVEL3: {vec[12]}")
+            print(f"STIMPACK: {vec[13]}")
+            print(f"SHIELDWALL: {vec[14]}")
+            print(f"action_memory: {vec[15: 35]}")
+            print(f"ally units: {vec[35: 40]}")
+            print(f"ally structures: {vec[40: 47]}")
+            print(f"enemy units: {vec[47: 66]}")
+            print(f"enemy structures: {vec[66: 82]}")
+            print(f"locations and units: {vec[66: -1]}")
 
         await self.distribute_workers()
 

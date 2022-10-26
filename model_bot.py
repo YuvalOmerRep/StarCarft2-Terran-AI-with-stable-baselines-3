@@ -20,11 +20,9 @@ end_game_reward = 0
 class Reinforcement_bot(BotAI):  # inherits from BotAI (part of BurnySC2)
     def __init__(self, reward_system):
         super().__init__()
-        all_expansions_locations_sorted = self.start_location.sort_by_distance(self.expansion_locations_list)
-
         self.end_game = Reward_end_game(self)
-        self.strategy = TS.Random_Strategy(self, all_expansions_locations_sorted)
-        self.features_extractor = basic_feature_extractor(self, all_expansions_locations_sorted)
+        self.strategy = TS.Random_Strategy(self)
+        self.features_extractor = basic_feature_extractor(self)
         self.reward_system = reward_system(self)
         self.units_dict_tags = dict()
         self.my_units_died_since_last_action = []
@@ -34,6 +32,9 @@ class Reinforcement_bot(BotAI):  # inherits from BotAI (part of BurnySC2)
 
     async def on_step(self, iteration: int):  # on_step is a method that is called every step of the game.
         if iteration == GB.START_ITERATION:
+            all_expansions_locations_sorted = self.start_location.sort_by_distance(self.expansion_locations_list)
+            await self.features_extractor.initialize_location_list(all_expansions_locations_sorted)
+            await self.strategy.initialize_location_list(all_expansions_locations_sorted)
             await self._initialize_tag_dict()
 
         no_action = True
@@ -53,7 +54,7 @@ class Reinforcement_bot(BotAI):  # inherits from BotAI (part of BurnySC2)
 
         await self.distribute_workers()  # put idle workers back to work
 
-        action = state_rwd_action['action']
+        action = state_rwd_action['action']  # todo: fix list of commands names
         '''
         0: build_from_command_center
         1: expand_now
@@ -88,10 +89,12 @@ class Reinforcement_bot(BotAI):  # inherits from BotAI (part of BurnySC2)
         '''
 
         chosen_action_lst = self.strategy.actions_list[action]
+        if iteration <= GB.START_ITERATION:
+            reward = 0
+        elif iteration > GB.START_ITERATION:
+            reward = await chosen_action_lst[0]()
 
-        reward = await chosen_action_lst[0]()
-
-        feature_state = self.features_extractor.generate_vectors(action)
+        feature_state = self.features_extractor.generate_vectors(action, iteration)
 
         self.took_damage = False
 

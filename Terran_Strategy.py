@@ -14,6 +14,9 @@ class Terran_Strategy:
     async def strategize(self):
         raise NotImplementedError
 
+    async def initialize_location_list(self, locations_sorted):
+        raise NotImplementedError
+
 
 async def find_from_group_with_reactor(structures_to_check, unit_to_train: UId):
     """
@@ -32,7 +35,7 @@ async def find_from_group_with_reactor(structures_to_check, unit_to_train: UId):
 
 
 class Random_Strategy(Terran_Strategy):
-    def __init__(self, agent: BotAI, locations_sorted):
+    def __init__(self, agent: BotAI):
         """
         The __init__ method of the Random_Strategy class,
 
@@ -40,7 +43,7 @@ class Random_Strategy(Terran_Strategy):
         """
         super().__init__(agent)
         self.is_sieged = False
-        self.locations_sorted = locations_sorted
+        self.locations_sorted = []
 
         self.actions_list = [
             [self.build_from_command_center, "build_from_command_center"],
@@ -68,40 +71,43 @@ class Random_Strategy(Terran_Strategy):
             # [self.attack_enemy_main, "attack_enemy_main"],
             [self.attack_enemy_units, "attack_enemy_units"],
             [self.attack_enemy_structures, "attack_enemy_structures"],
-            [self.gather_units_at(self.locations_sorted[0]), "gather all units on main base"],
-            [self.gather_units_at(self.locations_sorted[1]), "gather all units on 3rd"],
-            [self.gather_units_at(self.locations_sorted[2]), "gather all units on 2nd"],
-            [self.gather_units_at(self.locations_sorted[3]), "gather all units on a base"],
-            [self.gather_units_at(self.locations_sorted[4]), "gather all units on a base"],
-            [self.gather_units_at(self.locations_sorted[5]), "gather all units on a base"],
-            [self.gather_units_at(self.locations_sorted[6]), "gather all units on a base"],
-            [self.gather_units_at(self.locations_sorted[7]), "gather all units on a base"],
-            [self.gather_units_at(self.locations_sorted[8]), "gather all units on a base"],
-            [self.gather_units_at(self.locations_sorted[9]), "gather all units on a base"],
-            [self.gather_units_at(self.locations_sorted[10]), "gather all units on a base"],
-            [self.gather_units_at(self.locations_sorted[11]), "gather all units on a base"],
-            [self.gather_units_at(self.locations_sorted[12]), "gather all units on a base"],
-            [self.gather_units_at(self.locations_sorted[13]), "gather all units on a base"],
+            [self.gather_units_at_1, "gather all units on main base"],
+            [self.gather_units_at_2, "gather all units on 3rd"],
+            [self.gather_units_at_3, "gather all units on 2nd"],
+            [self.gather_units_at_4, "gather all units on a base"],
+            [self.gather_units_at_5, "gather all units on a base"],
+            [self.gather_units_at_6, "gather all units on a base"],
+            [self.gather_units_at_7, "gather all units on a base"],
+            [self.gather_units_at_8, "gather all units on a base"],
+            [self.gather_units_at_9, "gather all units on a base"],
+            [self.gather_units_at_10, "gather all units on a base"],
+            [self.gather_units_at_11, "gather all units on a base"],
+            [self.gather_units_at_12, "gather all units on a base"],
+            [self.gather_units_at_13, "gather all units on a base"],
+            [self.gather_units_at_14, "gather all units on a base"],
             # [self.gather_units_at_outpost, "gather_units_at_outpost"],
             # [self.gather_units_in_front_of_third, "gather_units_in_front_of_third"],
             [self.hold_position_all_army, "hold_position_all_army"],
             [self.drop_mule, "drop_mule"],
             [self.scan_army, "scan_army"],
-            [self.scan_location(self.locations_sorted[0]), "scan main base"],
-            [self.scan_location(self.locations_sorted[2]), "scan 2nd"],
-            [self.scan_location(self.locations_sorted[3]), "scan 3rd"],
-            [self.scan_location(self.locations_sorted[4]), "scan a base location"],
-            [self.scan_location(self.locations_sorted[5]), "scan a base location"],
-            [self.scan_location(self.locations_sorted[6]), "scan a base location"],
-            [self.scan_location(self.locations_sorted[7]), "scan a base location"],
-            [self.scan_location(self.locations_sorted[8]), "scan a base location"],
-            [self.scan_location(self.locations_sorted[9]), "scan a base location"],
-            [self.scan_location(self.locations_sorted[10]), "scan a base location"],
-            [self.scan_location(self.locations_sorted[11]), "scan a base location"],
-            [self.scan_location(self.locations_sorted[12]), "scan a base location"],
-            [self.scan_location(self.locations_sorted[13]), "scan a base location"],
-
+            [self.scan_location_at_1, "scan main base"],
+            [self.scan_location_at_2, "scan 2nd"],
+            [self.scan_location_at_3, "scan 3rd"],
+            [self.scan_location_at_4, "scan a base location"],
+            [self.scan_location_at_5, "scan a base location"],
+            [self.scan_location_at_6, "scan a base location"],
+            [self.scan_location_at_7, "scan a base location"],
+            [self.scan_location_at_8, "scan a base location"],
+            [self.scan_location_at_9, "scan a base location"],
+            [self.scan_location_at_10, "scan a base location"],
+            [self.scan_location_at_11, "scan a base location"],
+            [self.scan_location_at_12, "scan a base location"],
+            [self.scan_location_at_13, "scan a base location"],
+            [self.scan_location_at_14, "scan a base location"],
         ]
+
+    async def initialize_location_list(self, locations_sorted):
+        self.locations_sorted = locations_sorted
 
     async def strategize(self):
         """
@@ -706,8 +712,9 @@ class Random_Strategy(Terran_Strategy):
         """
         if self.agent.enemy_units:
             await self.attack_enemy(self.agent.enemy_units)
-
-        return GB.VALID_COMMAND_REWARD
+            return GB.VALID_COMMAND_REWARD
+        else:
+            return GB.INVALID_COMMAND_REWARD
 
     async def attack_enemy_structures(self):
         """
@@ -716,9 +723,11 @@ class Random_Strategy(Terran_Strategy):
 
         :return: Reward of action depending on it's success
         """
-        await self.attack_enemy(self.agent.enemy_structures)
+        if self.agent.enemy_structures:
+            await self.attack_enemy(self.agent.enemy_structures)
+            return GB.VALID_COMMAND_REWARD
 
-        return GB.VALID_COMMAND_REWARD
+        return GB.INVALID_COMMAND_REWARD
 
     async def attack_enemy(self, what_to_attack):
         await self.attack_position_with_unit_type(UId.MARINE, what_to_attack)
@@ -798,7 +807,89 @@ class Random_Strategy(Terran_Strategy):
 
         await self.follow_other_unit(UId.MEDIVAC)
 
+    async def gather_units_at_1(self):
+        await self.gather_units_at(self.locations_sorted[0])
 
+    async def gather_units_at_2(self):
+        await self.gather_units_at(self.locations_sorted[1])
+
+    async def gather_units_at_3(self):
+        await self.gather_units_at(self.locations_sorted[2])
+
+    async def gather_units_at_4(self):
+        await self.gather_units_at(self.locations_sorted[3])
+
+    async def gather_units_at_5(self):
+        await self.gather_units_at(self.locations_sorted[4])
+
+    async def gather_units_at_6(self):
+        await self.gather_units_at(self.locations_sorted[5])
+
+    async def gather_units_at_7(self):
+        await self.gather_units_at(self.locations_sorted[6])
+
+    async def gather_units_at_8(self):
+        await self.gather_units_at(self.locations_sorted[7])
+
+    async def gather_units_at_9(self):
+        await self.gather_units_at(self.locations_sorted[8])
+
+    async def gather_units_at_10(self):
+        await self.gather_units_at(self.locations_sorted[9])
+
+    async def gather_units_at_11(self):
+        await self.gather_units_at(self.locations_sorted[10])
+
+    async def gather_units_at_12(self):
+        await self.gather_units_at(self.locations_sorted[11])
+
+    async def gather_units_at_13(self):
+        await self.gather_units_at(self.locations_sorted[12])
+
+    async def gather_units_at_14(self):
+        await self.gather_units_at(self.locations_sorted[13])
+
+    async def scan_location_at_1(self):
+        self.scan_location(self.locations_sorted[0])
+
+    async def scan_location_at_2(self):
+        self.scan_location(self.locations_sorted[1])
+
+    async def scan_location_at_3(self):
+        self.scan_location(self.locations_sorted[2])
+
+    async def scan_location_at_4(self):
+        self.scan_location(self.locations_sorted[3])
+
+    async def scan_location_at_5(self):
+        self.scan_location(self.locations_sorted[4])
+
+    async def scan_location_at_6(self):
+        self.scan_location(self.locations_sorted[5])
+
+    async def scan_location_at_7(self):
+        self.scan_location(self.locations_sorted[6])
+
+    async def scan_location_at_8(self):
+        self.scan_location(self.locations_sorted[7])
+
+    async def scan_location_at_9(self):
+        self.scan_location(self.locations_sorted[8])
+
+    async def scan_location_at_10(self):
+        self.scan_location(self.locations_sorted[9])
+
+    async def scan_location_at_11(self):
+        self.scan_location(self.locations_sorted[10])
+
+    async def scan_location_at_12(self):
+        self.scan_location(self.locations_sorted[11])
+
+    async def scan_location_at_13(self):
+        self.scan_location(self.locations_sorted[12])
+
+    async def scan_location_at_14(self):
+        self.scan_location(self.locations_sorted[13])
 
     async def gather_one_type_at_location(self, uid, location):
         """
