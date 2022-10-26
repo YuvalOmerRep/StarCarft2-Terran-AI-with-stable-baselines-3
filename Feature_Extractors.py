@@ -23,24 +23,37 @@ def get_amount(uid: UId, group) -> int:
 
 class basic_feature_extractor(Extractor):
 
-    def __init__(self, bot: BotAI):
+    def __init__(self, bot: BotAI, locations_sorted):
         super().__init__(bot)
+        self.action_memory = [-1 for i in range(Globals.MEMORY_SIZE)]
+        self.locations_sorted = locations_sorted
 
-    def generate_vectors(self, action: int) -> np.array:
-        is_stimmed = 0
+    def get_is_stimmed(self):
         for marine in self.bot_to_extract_from.units(UId.MARINE):
             if marine.has_buff(BId.STIMPACK):
-                is_stimmed = 1
-                break
+                return 1
 
-        if not is_stimmed:
-            for maruder in self.bot_to_extract_from.units(UId.MARAUDER):
-                if maruder.has_buff(BId.STIMPACK):
-                    is_stimmed = 1
-                    break
+        for marauder in self.bot_to_extract_from.units(UId.MARAUDER):
+            if marauder.has_buff(BId.STIMPACK):
+                return 1
 
-        vector = [action, self.bot_to_extract_from.minerals, self.bot_to_extract_from.vespene,
-                  self.bot_to_extract_from.supply_used, self.bot_to_extract_from.supply_cap, is_stimmed,
+        return 0
+
+    def command_center_has_energy_for_ability(self):
+        for townhall in self.bot_to_extract_from.townhalls:
+            if townhall.energy >= Globals.ENERGY_FOR_MULE_OR_SCAN:
+                return 1
+        return 0
+
+    def generate_vectors(self, action: int) -> np.array:
+        is_stimmed = self.get_is_stimmed()
+        has_energy = self.command_center_has_energy_for_ability()
+
+        self.action_memory.pop(0)
+        self.action_memory.append(action)
+
+        vector = [self.action_memory, self.bot_to_extract_from.minerals, self.bot_to_extract_from.vespene,
+                  self.bot_to_extract_from.supply_used, self.bot_to_extract_from.supply_cap, is_stimmed, has_energy,
                   self.bot_to_extract_from.already_pending_upgrade(UpId.TERRANINFANTRYWEAPONSLEVEL1),
                   self.bot_to_extract_from.already_pending_upgrade(UpId.TERRANINFANTRYWEAPONSLEVEL2),
                   self.bot_to_extract_from.already_pending_upgrade(UpId.TERRANINFANTRYWEAPONSLEVEL3),
@@ -67,4 +80,27 @@ class basic_feature_extractor(Extractor):
             [get_amount(i, self.bot_to_extract_from.enemy_structures)
              for i in Globals.protoss_structures_list]  # enemy_buildings
 
+        vector += self.get_amounts_from_group_relative_to_expansions()  # "radar" system
+        # for getting locations of ally and enemy units and structures
+
         return np.array(vector)
+
+    def get_amounts_from_group_relative_to_expansions(self):
+        result = []
+
+        for location in self.locations_sorted:
+            result.append(amount_from_location_and_group(self.bot_to_extract_from.units, location))
+            result.append(amount_from_location_and_group(self.bot_to_extract_from.structures, location))
+            result.append(amount_from_location_and_group(self.bot_to_extract_from.enemy_units, location))
+            result.append(amount_from_location_and_group(self.bot_to_extract_from.enemy_structures, location))
+
+        return result
+
+
+def amount_from_location_and_group(group, location):
+    ally_units_in_location_radius = \
+        group.closer_than(Globals.RADIUS_FROM_LOCATION, location)
+    if ally_units_in_location_radius:
+        return ally_units_in_location_radius.amount
+    else:
+        return 0

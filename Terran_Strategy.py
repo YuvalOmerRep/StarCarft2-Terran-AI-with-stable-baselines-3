@@ -32,7 +32,7 @@ async def find_from_group_with_reactor(structures_to_check, unit_to_train: UId):
 
 
 class Random_Strategy(Terran_Strategy):
-    def __init__(self, agent: BotAI):
+    def __init__(self, agent: BotAI, locations_sorted):
         """
         The __init__ method of the Random_Strategy class,
 
@@ -40,8 +40,7 @@ class Random_Strategy(Terran_Strategy):
         """
         super().__init__(agent)
         self.is_sieged = False
-        self.flying_building = None
-        self.flying_ability = None
+        self.locations_sorted = locations_sorted
 
         self.actions_list = [
             [self.build_from_command_center, "build_from_command_center"],
@@ -66,14 +65,42 @@ class Random_Strategy(Terran_Strategy):
             [self.upgrade_marine, "upgrade_marine"],
             [self.stim_army, "stim_army"],
             [self.siege_tanks, "siege_tanks"],
-            [self.attack_enemy_main, "attack_enemy_main"],
+            # [self.attack_enemy_main, "attack_enemy_main"],
             [self.attack_enemy_units, "attack_enemy_units"],
             [self.attack_enemy_structures, "attack_enemy_structures"],
-            [self.gather_units_at_outpost, "gather_units_at_outpost"],
-            [self.gather_units_in_front_of_third, "gather_units_in_front_of_third"],
+            [self.gather_units_at(self.locations_sorted[0]), "gather all units on main base"],
+            [self.gather_units_at(self.locations_sorted[1]), "gather all units on 3rd"],
+            [self.gather_units_at(self.locations_sorted[2]), "gather all units on 2nd"],
+            [self.gather_units_at(self.locations_sorted[3]), "gather all units on a base"],
+            [self.gather_units_at(self.locations_sorted[4]), "gather all units on a base"],
+            [self.gather_units_at(self.locations_sorted[5]), "gather all units on a base"],
+            [self.gather_units_at(self.locations_sorted[6]), "gather all units on a base"],
+            [self.gather_units_at(self.locations_sorted[7]), "gather all units on a base"],
+            [self.gather_units_at(self.locations_sorted[8]), "gather all units on a base"],
+            [self.gather_units_at(self.locations_sorted[9]), "gather all units on a base"],
+            [self.gather_units_at(self.locations_sorted[10]), "gather all units on a base"],
+            [self.gather_units_at(self.locations_sorted[11]), "gather all units on a base"],
+            [self.gather_units_at(self.locations_sorted[12]), "gather all units on a base"],
+            [self.gather_units_at(self.locations_sorted[13]), "gather all units on a base"],
+            # [self.gather_units_at_outpost, "gather_units_at_outpost"],
+            # [self.gather_units_in_front_of_third, "gather_units_in_front_of_third"],
             [self.hold_position_all_army, "hold_position_all_army"],
             [self.drop_mule, "drop_mule"],
-            [self.scan_army, "scan_army"]
+            [self.scan_army, "scan_army"],
+            [self.scan_location(self.locations_sorted[0]), "scan main base"],
+            [self.scan_location(self.locations_sorted[2]), "scan 2nd"],
+            [self.scan_location(self.locations_sorted[3]), "scan 3rd"],
+            [self.scan_location(self.locations_sorted[4]), "scan a base location"],
+            [self.scan_location(self.locations_sorted[5]), "scan a base location"],
+            [self.scan_location(self.locations_sorted[6]), "scan a base location"],
+            [self.scan_location(self.locations_sorted[7]), "scan a base location"],
+            [self.scan_location(self.locations_sorted[8]), "scan a base location"],
+            [self.scan_location(self.locations_sorted[9]), "scan a base location"],
+            [self.scan_location(self.locations_sorted[10]), "scan a base location"],
+            [self.scan_location(self.locations_sorted[11]), "scan a base location"],
+            [self.scan_location(self.locations_sorted[12]), "scan a base location"],
+            [self.scan_location(self.locations_sorted[13]), "scan a base location"],
+
         ]
 
     async def strategize(self):
@@ -342,6 +369,22 @@ class Random_Strategy(Terran_Strategy):
 
                 self.agent.do(town_hall(AbilityId.SCANNERSWEEP_SCAN,
                                         self.agent.units(unit).random.position))
+                return GB.VALID_COMMAND_REWARD
+
+        return GB.INVALID_COMMAND_REWARD
+
+    def scan_location(self, location):
+        """
+        A method that uses the scanner_sweep ability on a location using
+        a random orbital command that has enough energy to cast the ability if the agent has such orbital command.
+
+        :param: location: the location we want to scan
+        :return: Reward of action depending on it's success
+        """
+        for town_hall in self.agent.townhalls:
+            if town_hall.type_id == UId.ORBITALCOMMAND and town_hall.energy >= GB.ENERGY_FOR_MULE_OR_SCAN:
+
+                self.agent.do(town_hall(AbilityId.SCANNERSWEEP_SCAN, location))
                 return GB.VALID_COMMAND_REWARD
 
         return GB.INVALID_COMMAND_REWARD
@@ -754,6 +797,8 @@ class Random_Strategy(Terran_Strategy):
         await self.gather_one_type_at_location(UId.THOR, location)
 
         await self.follow_other_unit(UId.MEDIVAC)
+
+
 
     async def gather_one_type_at_location(self, uid, location):
         """

@@ -20,9 +20,11 @@ end_game_reward = 0
 class Reinforcement_bot(BotAI):  # inherits from BotAI (part of BurnySC2)
     def __init__(self, reward_system):
         super().__init__()
+        all_expansions_locations_sorted = self.start_location.sort_by_distance(self.expansion_locations_list)
+
         self.end_game = Reward_end_game(self)
-        self.strategy = TS.Random_Strategy(self)
-        self.features_extractor = basic_feature_extractor(self)
+        self.strategy = TS.Random_Strategy(self, all_expansions_locations_sorted)
+        self.features_extractor = basic_feature_extractor(self, all_expansions_locations_sorted)
         self.reward_system = reward_system(self)
         self.units_dict_tags = dict()
         self.my_units_died_since_last_action = []
