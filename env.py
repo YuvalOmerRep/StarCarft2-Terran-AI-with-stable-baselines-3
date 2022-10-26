@@ -16,7 +16,7 @@ class Sc2Env(gym.Env):
         # They must be gym.spaces objects
         self.action_space = spaces.Discrete(GB.ACTION_SPACE_SIZE)
         self.observation_space = spaces.Box(low=GB.LOW_BOUND, high=GB.HIGH_BOUND,
-                                            shape=GB.OBSERVATION_SPACE_SHAPE, dtype=np.uint8)
+                                            shape=GB.OBSERVATION_SPACE_SHAPE, dtype=np.float16)
         self.run_sc2 = what_to_run
 
     def step(self, action):

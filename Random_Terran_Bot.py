@@ -24,7 +24,7 @@ class RandomTerranBot(BotAI):
         elif iteration > GB.START_ITERATION:
             await self.strategy.strategize()
 
-            vec = self.features_extractor.generate_vectors(0, iteration)
+            vec = self.features_extractor.generate_vectors(iteration, iteration)
 
             print(f"minerals: {vec[0]}")
             print(f"vespene: {vec[1]}")
@@ -42,11 +42,19 @@ class RandomTerranBot(BotAI):
             print(f"STIMPACK: {vec[13]}")
             print(f"SHIELDWALL: {vec[14]}")
             print(f"action_memory: {vec[15: 35]}")
-            print(f"ally units: {vec[35: 40]}")
-            print(f"ally structures: {vec[40: 47]}")
-            print(f"enemy units: {vec[47: 66]}")
-            print(f"enemy structures: {vec[66: 82]}")
-            print(f"locations and units: {vec[66: -1]}")
+            print(f"ally units:")
+            for i, uid in enumerate(GB.terran_unit_list):
+                print(f"{uid}: {vec[35 + i]}")
+            print(f"ally structures:")
+            for i, uid in enumerate(GB.terran_structures_list):
+                print(f"{uid}: {vec[41 + i]}")
+            print(f"enemy units:")
+            for i, uid in enumerate(GB.protoss_units_list):
+                print(f"{uid}: {vec[50 + i]}")
+            print(f"enemy structures:")
+            for i, uid in enumerate(GB.protoss_structures_list):
+                print(f"{uid}: {vec[69 + i]}")
+            print(f"locations and units: {vec[86: -1]}")
 
         await self.distribute_workers()
 
