@@ -178,7 +178,7 @@ class Reinforcement_bot(BotAI):  # inherits from BotAI (part of BurnySC2)
 
 result = run_game(maps.get("JagannathaAIE"),
                   [Bot(Race.Terran, Reinforcement_bot(Reward_damage_and_unit_with_step_punishment)),
-                   Computer(Race.Protoss, Difficulty.Easy)], realtime=False)
+                   Computer(Race.Protoss, Difficulty.Hard)], realtime=False)
 
 if str(result) == "Result.Victory":
     rwd = 500
