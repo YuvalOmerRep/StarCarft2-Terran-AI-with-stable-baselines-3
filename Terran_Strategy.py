@@ -809,87 +809,101 @@ class Random_Strategy(Terran_Strategy):
 
     async def gather_units_at_1(self):
         await self.gather_units_at(self.locations_sorted[0])
+        return GB.VALID_COMMAND_REWARD
 
     async def gather_units_at_2(self):
         await self.gather_units_at(self.locations_sorted[1])
+        return GB.VALID_COMMAND_REWARD
 
     async def gather_units_at_3(self):
         await self.gather_units_at(self.locations_sorted[2])
+        return GB.VALID_COMMAND_REWARD
 
     async def gather_units_at_4(self):
         await self.gather_units_at(self.locations_sorted[3])
+        return GB.VALID_COMMAND_REWARD
 
     async def gather_units_at_5(self):
         await self.gather_units_at(self.locations_sorted[4])
+        return GB.VALID_COMMAND_REWARD
 
     async def gather_units_at_6(self):
         await self.gather_units_at(self.locations_sorted[5])
+        return GB.VALID_COMMAND_REWARD
 
     async def gather_units_at_7(self):
         await self.gather_units_at(self.locations_sorted[6])
+        return GB.VALID_COMMAND_REWARD
 
     async def gather_units_at_8(self):
         await self.gather_units_at(self.locations_sorted[7])
+        return GB.VALID_COMMAND_REWARD
 
     async def gather_units_at_9(self):
         await self.gather_units_at(self.locations_sorted[8])
+        return GB.VALID_COMMAND_REWARD
 
     async def gather_units_at_10(self):
         await self.gather_units_at(self.locations_sorted[9])
+        return GB.VALID_COMMAND_REWARD
 
     async def gather_units_at_11(self):
         await self.gather_units_at(self.locations_sorted[10])
+        return GB.VALID_COMMAND_REWARD
 
     async def gather_units_at_12(self):
         await self.gather_units_at(self.locations_sorted[11])
+        return GB.VALID_COMMAND_REWARD
 
     async def gather_units_at_13(self):
         await self.gather_units_at(self.locations_sorted[12])
+        return GB.VALID_COMMAND_REWARD
 
     async def gather_units_at_14(self):
         await self.gather_units_at(self.locations_sorted[13])
+        return GB.VALID_COMMAND_REWARD
 
     async def scan_location_at_1(self):
-        self.scan_location(self.locations_sorted[0])
+        return self.scan_location(self.locations_sorted[0])
 
     async def scan_location_at_2(self):
-        self.scan_location(self.locations_sorted[1])
+        return self.scan_location(self.locations_sorted[1])
 
     async def scan_location_at_3(self):
-        self.scan_location(self.locations_sorted[2])
+        return self.scan_location(self.locations_sorted[2])
 
     async def scan_location_at_4(self):
-        self.scan_location(self.locations_sorted[3])
+        return self.scan_location(self.locations_sorted[3])
 
     async def scan_location_at_5(self):
-        self.scan_location(self.locations_sorted[4])
+        return self.scan_location(self.locations_sorted[4])
 
     async def scan_location_at_6(self):
-        self.scan_location(self.locations_sorted[5])
+        return self.scan_location(self.locations_sorted[5])
 
     async def scan_location_at_7(self):
-        self.scan_location(self.locations_sorted[6])
+        return self.scan_location(self.locations_sorted[6])
 
     async def scan_location_at_8(self):
-        self.scan_location(self.locations_sorted[7])
+        return self.scan_location(self.locations_sorted[7])
 
     async def scan_location_at_9(self):
-        self.scan_location(self.locations_sorted[8])
+        return self.scan_location(self.locations_sorted[8])
 
     async def scan_location_at_10(self):
-        self.scan_location(self.locations_sorted[9])
+        return self.scan_location(self.locations_sorted[9])
 
     async def scan_location_at_11(self):
-        self.scan_location(self.locations_sorted[10])
+        return self.scan_location(self.locations_sorted[10])
 
     async def scan_location_at_12(self):
-        self.scan_location(self.locations_sorted[11])
+        return self.scan_location(self.locations_sorted[11])
 
     async def scan_location_at_13(self):
-        self.scan_location(self.locations_sorted[12])
+        return self.scan_location(self.locations_sorted[12])
 
     async def scan_location_at_14(self):
-        self.scan_location(self.locations_sorted[13])
+        return self.scan_location(self.locations_sorted[13])
 
     async def gather_one_type_at_location(self, uid, location):
         """

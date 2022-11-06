@@ -107,6 +107,7 @@ class Reinforcement_bot(BotAI):  # inherits from BotAI (part of BurnySC2)
         self.units_created_this_frame = []
         if self.time > GB.GAME_TIME_LIMIT - 15:
             global end_game_reward
+            self.end_game.update(self.reward_system.get_total_dmg_reward())
             end_game_reward = self.end_game.calculate_reward(self.enemy_units, self.units, self.units, iteration)
 
         data = {"state": feature_state, "reward": reward,
