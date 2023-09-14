@@ -1,8 +1,9 @@
 from sc2.bot_ai import BotAI
 from sc2.unit import Unit, AbilityId
 import Terran_Strategy as TS
-from Feature_Extractors import basic_feature_extractor, feature_extractor_with_map
+from Feature_Extractors import feature_extractor_with_map
 import Globals as GB
+import cv2
 
 
 class RandomTerranBot(BotAI):
@@ -24,7 +25,10 @@ class RandomTerranBot(BotAI):
         elif iteration > GB.START_ITERATION:
             await self.strategy.strategize()
 
-            vec = self.features_extractor.generate_vectors(iteration, iteration)
+            vec, game_map = self.features_extractor.generate_vectors(iteration, iteration)
+
+            cv2.imshow('map', cv2.flip(cv2.resize(game_map, None, fx=4, fy=4, interpolation=cv2.INTER_NEAREST), 0))
+            cv2.waitKey(1)
 
             print(f"minerals: {vec[0]}")
             print(f"vespene: {vec[1]}")

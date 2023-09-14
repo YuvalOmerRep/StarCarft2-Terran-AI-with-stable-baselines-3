@@ -4,7 +4,6 @@ from sc2.ids.unit_typeid import UnitTypeId as UId
 from sc2.ids.buff_id import BuffId as BId
 from sc2.ids.upgrade_id import UpgradeId as UpId
 import Globals
-import cv2
 import math
 
 
@@ -241,8 +240,5 @@ class feature_extractor_with_map(Extractor):
 
                 # show map with opencv, resized to be larger:
                 # horizontal flip:
-
-                cv2.imshow('map', cv2.flip(cv2.resize(game_map, None, fx=4, fy=4, interpolation=cv2.INTER_NEAREST), 0))
-                cv2.waitKey(1)
 
         return game_map
