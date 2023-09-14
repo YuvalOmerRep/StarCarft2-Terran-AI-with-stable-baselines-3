@@ -32,7 +32,7 @@ def load_and_train(model_name: str, from_num_steps, new_model_name: str, env: Sc
 
 
 if __name__ == '__main__':
-    LOAD_MODEL = f"models/"  # change to the model to continue training on
+    LOAD_MODEL = f"models/Starting_blind_1667752407/300000.zip"  # change to the model to continue training on
 
     # load the model:
     model = PPO.load(LOAD_MODEL, env=Sc2Env())

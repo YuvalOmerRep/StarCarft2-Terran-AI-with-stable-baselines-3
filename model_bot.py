@@ -184,7 +184,6 @@ if str(result) == "Result.Victory":
     rwd = 500
 elif str(result) == "Result.Tie":
     rwd = end_game_reward
-    print(rwd)
 else:
     rwd = -500
 

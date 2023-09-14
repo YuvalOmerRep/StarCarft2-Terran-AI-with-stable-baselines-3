@@ -52,16 +52,11 @@ class Sc2Env(gym.Env):
                             # continue waiting for state
                             wait_for_state = True
                         else:
-                            # Got state
-                            # action = state_rwd_action['action']
                             state = state_rwd_action['state']
                             reward = state_rwd_action['reward']
                             done = state_rwd_action['done']
                             wait_for_state = False
-                            # action = [action]
-                            # action.extend(state)
-                            # action.append(reward)
-                            # self.data_scraper.scrape_data(np.array(action))
+
 
             except Exception as e:
                 wait_for_state = True

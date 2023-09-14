@@ -1,7 +1,7 @@
 from sc2.bot_ai import BotAI
 from sc2.unit import Unit, AbilityId
 import Terran_Strategy as TS
-from Feature_Extractors import basic_feature_extractor
+from Feature_Extractors import basic_feature_extractor, feature_extractor_with_map
 import Globals as GB
 
 
@@ -13,7 +13,7 @@ class RandomTerranBot(BotAI):
         self.took_damage = False
 
         self.strategy = TS.Random_Strategy(self)
-        self.features_extractor = basic_feature_extractor(self)
+        self.features_extractor = feature_extractor_with_map(self)
 
     async def on_step(self, iteration: int):
         if iteration == GB.START_ITERATION:
