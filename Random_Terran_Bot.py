@@ -67,6 +67,6 @@ class RandomTerranBot(BotAI):
 
     async def on_building_construction_complete(self, unit: Unit):
         if unit.name == "SupplyDepot":
-            self.do(unit(AbilityId.MORPH_SUPPLYDEPOT_LOWER))
+            await self.do(unit(AbilityId.MORPH_SUPPLYDEPOT_LOWER))
 
         return await super().on_building_construction_complete(unit)
