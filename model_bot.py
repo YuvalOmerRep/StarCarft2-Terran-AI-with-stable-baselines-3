@@ -10,6 +10,7 @@ import pickle
 from Feature_Extractors import basic_feature_extractor
 import Terran_Strategy as TS
 import Globals as GB
+from Utils import Message
 from Rewards import Reward_damage_and_unit_with_step_punishment
 from Rewards import Reward_end_game
 from sc2.ids.unit_typeid import UnitTypeId as UId
@@ -18,7 +19,7 @@ end_game_reward = 0
 
 
 class Reinforcement_bot(BotAI):  # inherits from BotAI (part of BurnySC2)
-    def __init__(self, reward_system):
+    def __init__(self, reward_system, connection):
         super().__init__()
         self.end_game = Reward_end_game(self)
         self.strategy = TS.Random_Strategy(self)
@@ -30,6 +31,8 @@ class Reinforcement_bot(BotAI):  # inherits from BotAI (part of BurnySC2)
         self.units_created_this_frame = []
         self.took_damage = False
 
+        self.connection = connection
+
     async def on_step(self, iteration: int):  # on_step is a method that is called every step of the game.
         if iteration == GB.START_ITERATION:
             all_expansions_locations_sorted = self.start_location.sort_by_distance(self.expansion_locations_list)
@@ -37,24 +40,11 @@ class Reinforcement_bot(BotAI):  # inherits from BotAI (part of BurnySC2)
             await self.strategy.initialize_location_list(all_expansions_locations_sorted)
             await self._initialize_tag_dict()
 
-        no_action = True
-        while no_action:
-            try:
-                with open('state_rwd_action.pkl', 'rb') as f:
-                    state_rwd_action = pickle.load(f)
-
-                    if state_rwd_action['action'] is None:
-                        # No action to execute, continue waiting
-                        no_action = True
-                    else:
-                        # Action found, continue to execute
-                        no_action = False
-            except:
-                pass
+        action_msg = self.connection.recv()
 
         await self.distribute_workers()  # put idle workers back to work
 
-        action = state_rwd_action['action']  # todo: fix list of commands names
+        action = action_msg.action  # todo: fix list of commands names
         '''
         0: build_from_command_center
         1: expand_now
@@ -91,7 +81,7 @@ class Reinforcement_bot(BotAI):  # inherits from BotAI (part of BurnySC2)
         chosen_action_lst = self.strategy.actions_list[action]
         if iteration <= GB.START_ITERATION:
             reward = 0
-        elif iteration > GB.START_ITERATION:
+        else:
             reward = await chosen_action_lst[0]()
 
         feature_state = self.features_extractor.generate_vectors(action, iteration)
@@ -110,14 +100,12 @@ class Reinforcement_bot(BotAI):  # inherits from BotAI (part of BurnySC2)
             self.end_game.update(self.reward_system.get_total_dmg_reward())
             end_game_reward = self.end_game.calculate_reward(self.enemy_units, self.units, self.units, iteration)
 
-        data = {"state": feature_state, "reward": reward,
-                "action": None, "done": False}  # empty action waiting for the next one!
+        state_reward_msg = Message(state=feature_state, reward=reward)
 
         if iteration % 1000 == 0:
             print(reward)
 
-        with open('state_rwd_action.pkl', 'wb') as f:
-            pickle.dump(data, f)
+        self.connection.send(state_reward_msg)
 
     async def _initialize_tag_dict(self):
         await self._initialize_one_group_tag_dict(self.units)
@@ -176,25 +164,22 @@ class Reinforcement_bot(BotAI):  # inherits from BotAI (part of BurnySC2)
         return await super().on_unit_took_damage(unit, amount_damage_taken)
 
 
-result = run_game(maps.get("JagannathaAIE"),
-                  [Bot(Race.Terran, Reinforcement_bot(Reward_damage_and_unit_with_step_punishment)),
-                   Computer(Race.Protoss, Difficulty.Hard)], realtime=False)
 
-if str(result) == "Result.Victory":
-    rwd = 500
-elif str(result) == "Result.Tie":
-    rwd = end_game_reward
-else:
-    rwd = -500
+def run_game_with_model_bot(connection):
+    result = run_game(maps.get("AbyssalReefLE"),
+                      [Bot(Race.Terran, Reinforcement_bot(Reward_damage_and_unit_with_step_punishment, connection)),
+                       Computer(Race.Protoss, Difficulty.Hard)], realtime=False, disable_fog=True)
 
-with open("results.txt", "a") as f:
-    f.write(f"{result}\n")
+    if str(result) == "Result.Victory":
+        rwd = 500
+    elif str(result) == "Result.Tie":
+        rwd = end_game_reward
+    else:
+        rwd = -500
 
-state = np.zeros(GB.OBSERVATION_SPACE_SHAPE)
-observation = state
-data = {"state": state, "reward": rwd, "action": None,
-        "done": True}  # empty action waiting for the next one!
-with open('state_rwd_action.pkl', 'wb') as f:
-    pickle.dump(data, f)
+    with open("results.txt", "a") as f:
+        f.write(f"{result}\n")
 
-sys.exit()
+    state = np.zeros(GB.OBSERVATION_SPACE_SHAPE)
+    game_done_message = Message(state=state, reward=rwd, done=True)
+    connection.send(game_done_message)

@@ -3,6 +3,7 @@ import os
 from env import Sc2Env
 import time
 import Globals as GB
+from multiprocessing import Pipe
 
 
 def train_new_model(model_name: str, env: Sc2Env):
@@ -34,23 +35,6 @@ def train_new_model(model_name: str, env: Sc2Env):
 
 
 if __name__ == '__main__':
-    model_name = f"Starting_blind_{int(time.time())}"
-
-    models_dir = f"models/{model_name}/"
-    logdir = f"logs/{model_name}/"
-
-    if not os.path.exists(models_dir):
-        os.makedirs(models_dir)
-
-    if not os.path.exists(logdir):
-        os.makedirs(logdir)
-
     env = Sc2Env()
-    model = PPO('MlpPolicy', env, verbose=1, tensorboard_log=logdir)
 
-    iters = 0
-    while True:
-        print("On iteration: ", iters)
-        iters += 1
-        model.learn(total_timesteps=GB.total_steps, reset_num_timesteps=False, tb_log_name=f"PPO")
-        model.save(f"{models_dir}/{GB.total_steps * iters}")
+    train_new_model(model_name=f"Starting_blind_{int(time.time())}", env=env)

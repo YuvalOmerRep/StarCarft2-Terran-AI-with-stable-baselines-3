@@ -1,10 +1,15 @@
+import sys
+
 import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
 import subprocess
+from multiprocessing import Process, Pipe
 import pickle
 import os
 import Globals as GB
+from Utils import Message
+from model_bot import run_game_with_model_bot
 
 
 class Sc2Env(gym.Env):
@@ -19,72 +24,33 @@ class Sc2Env(gym.Env):
                                             shape=GB.OBSERVATION_SPACE_SHAPE, dtype=np.float16)
         self.run_sc2 = what_to_run
 
+        self.connection = None
+
+    def _recv_type(self, message_type: type):
+        message = self.connection.recv()
+        if type(message) != message_type:
+            print(f"message was expected to be of type {message_type}", file=sys.stderr)
+            raise TypeError
+        return message
+
     def step(self, action):
-        wait_for_action = True
-        # waits for action.
-        while wait_for_action:
-            try:
-                with open('state_rwd_action.pkl', 'rb') as f:
-                    state_rwd_action = pickle.load(f)
-
-                    if state_rwd_action['action'] is not None:
-                        # Waiting for agent to complete action execution
-                        wait_for_action = True
-                    else:
-                        # Send a new action to agent since agent is done with last one
-                        wait_for_action = False
-                        state_rwd_action['action'] = action
-                        with open('state_rwd_action.pkl', 'wb') as f:
-                            # now we've added the action.
-                            pickle.dump(state_rwd_action, f)
-            except Exception as e:
-                # print(str(e))
-                pass
-
-        # waits for the new state to return
-        wait_for_state = True
-        while wait_for_state:
-            try:
-                if os.path.getsize('state_rwd_action.pkl') > 0:
-                    with open('state_rwd_action.pkl', 'rb') as f:
-                        state_rwd_action = pickle.load(f)
-                        if state_rwd_action['action'] is None:
-                            # continue waiting for state
-                            wait_for_state = True
-                        else:
-                            state = state_rwd_action['state']
-                            reward = state_rwd_action['reward']
-                            done = state_rwd_action['done']
-                            wait_for_state = False
-
-
-            except Exception as e:
-                wait_for_state = True
-                # todo: state, maybe change this whole section
-                state = np.zeros(GB.OBSERVATION_SPACE_SHAPE)
-                observation = state
-                # if still failing, input an ACTION, 3
-                data = {"state": state, "reward": 0, "action": 3,
-                        "done": False}  # empty action waiting for the next one!
-                with open('state_rwd_action.pkl', 'wb') as f:
-                    pickle.dump(data, f)
-
-                state = None
-                reward = 0
-                done = False
-                action = 3
-
-        info = {}
-        observation = state
-        return observation, reward, done, info
+        action_message = Message(action=action)
+        self.connection.send(action_message)
+        
+        state_message = self.connection.recv()
+        return state_message.state, state_message.reward, state_message.done, {}
 
     def reset(self):
         print("RESETTING ENVIRONMENT!!!!!!!!!!!!!")
-        state = np.zeros(GB.OBSERVATION_SPACE_SHAPE)
-        observation = state
-        data = {"state": state, "reward": 0, "action": None, "done": False}  # empty action waiting for the next one!
-        with open('state_rwd_action.pkl', 'wb') as f:
-            pickle.dump(data, f)
+        if self.connection is not None:
+            self.connection.close()
+        father_conn, child_conn = Pipe()
+        self.connection = father_conn
 
-        subprocess.Popen(['python3', self.run_sc2])
-        return observation  # reward, done, info can't be included
+        p = Process(target=run_game_with_model_bot, args=(child_conn,))
+        p.start()
+
+        state = np.zeros(GB.OBSERVATION_SPACE_SHAPE)
+        msg = Message(state=state)
+        self.connection.send(msg)
+        return state  # reward, done, info can't be included
