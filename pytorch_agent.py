@@ -1,7 +1,7 @@
 from collections import defaultdict
 
 import torch
-from tensordict.nn import TensorDictModule
+from tensordict.nn import TensorDictModule, InteractionType
 from tensordict.nn.distributions import NormalParamExtractor
 from torch import nn
 from torchrl.collectors.collectors import SyncDataCollector
@@ -13,7 +13,7 @@ from torchrl.envs import (Compose, DoubleToFloat, ObservationNorm,
 from env import Sc2Env
 from torchrl.envs.libs.gym import GymWrapper
 import torch.nn.functional as F
-from torchrl.envs.utils import set_exploration_mode
+from torchrl.envs.utils import set_exploration_type
 from torchrl.modules import ProbabilisticActor, TanhNormal, ValueOperator
 from torchrl.objectives import ClipPPOLoss
 from torchrl.objectives.value import GAE
@@ -187,7 +187,7 @@ for i, tensordict_data in enumerate(collector):
         # number of steps (1000, which is our ``env`` horizon).
         # The ``rollout`` method of the ``env`` can take a policy as argument:
         # it will then execute this policy at each step.
-        with set_exploration_mode("mean"), torch.no_grad():
+        with set_exploration_type(InteractionType.MEAN), torch.no_grad():
             # execute a rollout with the trained policy
             eval_rollout = env.rollout(1000, policy_module)
             logs["eval reward"].append(eval_rollout["next", "reward"].mean().item())

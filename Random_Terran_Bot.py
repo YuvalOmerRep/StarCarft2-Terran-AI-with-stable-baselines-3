@@ -27,8 +27,8 @@ class RandomTerranBot(BotAI):
 
             vec, game_map = self.features_extractor.generate_vectors(iteration, iteration)
 
-            print(game_map.shape)
-            print(vec.shape)
+            # print(game_map.shape)
+            # print(vec.shape)
 
             cv2.imshow('map', cv2.flip(cv2.resize(game_map, None, fx=4, fy=4, interpolation=cv2.INTER_NEAREST), 0))
             cv2.waitKey(1)
@@ -67,6 +67,6 @@ class RandomTerranBot(BotAI):
 
     async def on_building_construction_complete(self, unit: Unit):
         if unit.name == "SupplyDepot":
-            await self.do(unit(AbilityId.MORPH_SUPPLYDEPOT_LOWER))
+            self.do(unit(AbilityId.MORPH_SUPPLYDEPOT_LOWER))
 
         return await super().on_building_construction_complete(unit)
