@@ -13,6 +13,7 @@ def train_new_model(model_name: str):
     :param model_name: The name of the new model, model will be saved in models/[model_name]
     :param env: the environment the training will be held on
     """
+    model_name = f"{model_name}_{int(time.time())}"
     env = Sc2Env()
     models_dir = f"models/{model_name}/"
     logdir = f"logs/{model_name}/"
@@ -34,4 +35,4 @@ def train_new_model(model_name: str):
 
 
 if __name__ == '__main__':
-    train_new_model(model_name=f"model_v2_{int(time.time())}", env=env)
+    train_new_model(model_name=f"model_v2")

@@ -4,9 +4,9 @@ from train_new_model import train_new_model
 from load_and_train_model import load_and_train
 
 def main(argv, argc):
-    if argv[1] == "new" and argc == 2:
+    if argc == 3 and argv[1] == "new":
         train_new_model(argv[2])
-    elif argv[1] == "train" and argc == 3:
+    elif  argc == 4 and argv[1] == "train":
         load_and_train(argv[2], argv[3])
     else:
         raise Exception("improper use")
