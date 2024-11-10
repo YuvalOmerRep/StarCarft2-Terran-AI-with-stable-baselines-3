@@ -39,7 +39,7 @@ class Reward_damage_and_unit_with_step_punishment(Rewards):
         self.total_dmg_reward += self.damage_reward
         self.total_dmg_reward -= self.damage_punishment
 
-        reward += GB.step_punishment[iteration]
+        reward += GB.step_punishment[iteration-1]
 
         self.damage_reward = 0
 

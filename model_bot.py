@@ -182,9 +182,6 @@ def run_game_with_model_bot(conn):
     else:
         rwd = -500
 
-    with open("results.txt", "a") as f:
-        f.write(f"{result}\n")
-
     state = np.zeros(Globals.OBSERVATION_SPACE_SHAPE)
     game_done_message = Message(state=state, reward=rwd, done=True)
     conn.send(game_done_message)

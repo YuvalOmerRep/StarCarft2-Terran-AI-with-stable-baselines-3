@@ -3,17 +3,17 @@ import os
 from env import Sc2Env
 import time
 import Globals as GB
+import torch
 
 
-def train_new_model(model_name: str, env: Sc2Env):
+def train_new_model(model_name: str):
     """
     A function that trains a new model using the sc2 environment
 
     :param model_name: The name of the new model, model will be saved in models/[model_name]
     :param env: the environment the training will be held on
     """
-    model_name = f"{model_name}_{int(time.time())}"
-
+    env = Sc2Env()
     models_dir = f"models/{model_name}/"
     logdir = f"logs/{model_name}/"
 
@@ -23,7 +23,7 @@ def train_new_model(model_name: str, env: Sc2Env):
     if not os.path.exists(logdir):
         os.makedirs(logdir)
 
-    model = PPO('MlpPolicy', env, verbose=1, tensorboard_log=logdir)
+    model = PPO('MlpPolicy', env, verbose=1, tensorboard_log=logdir, device=torch.device('cuda'))
 
     iters = 0
     while True:
@@ -34,6 +34,4 @@ def train_new_model(model_name: str, env: Sc2Env):
 
 
 if __name__ == '__main__':
-    env = Sc2Env()
-
     train_new_model(model_name=f"model_v2_{int(time.time())}", env=env)
