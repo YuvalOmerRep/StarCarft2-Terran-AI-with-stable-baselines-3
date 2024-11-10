@@ -5,25 +5,29 @@ from sc2.main import run_game  # function that facilitates actually running the 
 from sc2.player import Bot, Computer  # wrapper for whether the agent is one of your bots, or a "computer" player
 from sc2 import maps  # maps method for loading maps to play in.
 import numpy as np
-import sys
-import pickle
-from Feature_Extractors import basic_feature_extractor
-import Terran_Strategy as TS
-import Globals as GB
+from Feature_Extractors import feature_extractor_with_map
+import Terran_Strategy
+import Globals
+from Terran_Strategy import Random_Strategy
 from Utils import Message
 from Rewards import Reward_damage_and_unit_with_step_punishment
 from Rewards import Reward_end_game
 from sc2.ids.unit_typeid import UnitTypeId as UId
+from multiprocessing import connection
 
 end_game_reward = 0
 
 
-class Reinforcement_bot(BotAI):  # inherits from BotAI (part of BurnySC2)
-    def __init__(self, reward_system, connection):
+class ReinforcementBot(BotAI):  # inherits from BotAI (part of BurnySC2)
+    end_game: Reward_end_game
+    strategy: Random_Strategy
+    conn: connection
+
+    def __init__(self, reward_system, con: connection):
         super().__init__()
         self.end_game = Reward_end_game(self)
-        self.strategy = TS.Random_Strategy(self)
-        self.features_extractor = basic_feature_extractor(self)
+        self.strategy = Terran_Strategy.Random_Strategy(self)
+        self.features_extractor = feature_extractor_with_map(self)
         self.reward_system = reward_system(self)
         self.units_dict_tags = dict()
         self.my_units_died_since_last_action = []
@@ -31,20 +35,21 @@ class Reinforcement_bot(BotAI):  # inherits from BotAI (part of BurnySC2)
         self.units_created_this_frame = []
         self.took_damage = False
 
-        self.connection = connection
+        self.conn = con
 
     async def on_step(self, iteration: int):  # on_step is a method that is called every step of the game.
-        if iteration == GB.START_ITERATION:
+        if iteration == Globals.START_ITERATION:
             all_expansions_locations_sorted = self.start_location.sort_by_distance(self.expansion_locations_list)
             await self.features_extractor.initialize_location_list(all_expansions_locations_sorted)
             await self.strategy.initialize_location_list(all_expansions_locations_sorted)
             await self._initialize_tag_dict()
 
-        action_msg = self.connection.recv()
+        action_msg = self.conn.recv()
+        action = action_msg.action
 
         await self.distribute_workers()  # put idle workers back to work
 
-        action = action_msg.action  # todo: fix list of commands names
+        # todo: fix list of commands names
         '''
         0: build_from_command_center
         1: expand_now
@@ -79,12 +84,12 @@ class Reinforcement_bot(BotAI):  # inherits from BotAI (part of BurnySC2)
         '''
 
         chosen_action_lst = self.strategy.actions_list[action]
-        if iteration <= GB.START_ITERATION:
+        if iteration <= Globals.START_ITERATION:
             reward = 0
         else:
             reward = await chosen_action_lst[0]()
 
-        feature_state = self.features_extractor.generate_vectors(action, iteration)
+        feature_state, game_map = self.features_extractor.generate_vectors(action, iteration)
 
         self.took_damage = False
 
@@ -95,17 +100,17 @@ class Reinforcement_bot(BotAI):  # inherits from BotAI (part of BurnySC2)
         self.my_units_died_since_last_action = []
         self.enemy_units_died_since_last_action = []
         self.units_created_this_frame = []
-        if self.time > GB.GAME_TIME_LIMIT - 15:
+        if self.time > Globals.GAME_TIME_LIMIT - 15:
             global end_game_reward
             self.end_game.update(self.reward_system.get_total_dmg_reward())
             end_game_reward = self.end_game.calculate_reward(self.enemy_units, self.units, self.units, iteration)
 
-        state_reward_msg = Message(state=feature_state, reward=reward)
+        state_reward_msg = Message(state=game_map, reward=reward)
 
         if iteration % 1000 == 0:
             print(reward)
 
-        self.connection.send(state_reward_msg)
+        self.conn.send(state_reward_msg)
 
     async def _initialize_tag_dict(self):
         await self._initialize_one_group_tag_dict(self.units)
@@ -165,9 +170,9 @@ class Reinforcement_bot(BotAI):  # inherits from BotAI (part of BurnySC2)
 
 
 
-def run_game_with_model_bot(connection):
+def run_game_with_model_bot(conn):
     result = run_game(maps.get("AbyssalReefLE"),
-                      [Bot(Race.Terran, Reinforcement_bot(Reward_damage_and_unit_with_step_punishment, connection)),
+                      [Bot(Race.Terran, ReinforcementBot(Reward_damage_and_unit_with_step_punishment, conn)),
                        Computer(Race.Protoss, Difficulty.Hard)], realtime=False, disable_fog=True)
 
     if str(result) == "Result.Victory":
@@ -180,6 +185,6 @@ def run_game_with_model_bot(connection):
     with open("results.txt", "a") as f:
         f.write(f"{result}\n")
 
-    state = np.zeros(GB.OBSERVATION_SPACE_SHAPE)
+    state = np.zeros(Globals.OBSERVATION_SPACE_SHAPE)
     game_done_message = Message(state=state, reward=rwd, done=True)
-    connection.send(game_done_message)
+    conn.send(game_done_message)

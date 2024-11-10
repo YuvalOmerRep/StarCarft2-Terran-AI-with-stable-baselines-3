@@ -1,12 +1,10 @@
 import sys
+from typing import Any
 
 import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
-import subprocess
 from multiprocessing import Process, Pipe
-import pickle
-import os
 import Globals as GB
 from Utils import Message
 from model_bot import run_game_with_model_bot
@@ -36,11 +34,14 @@ class Sc2Env(gym.Env):
     def step(self, action):
         action_message = Message(action=action)
         self.connection.send(action_message)
-        
-        state_message = self.connection.recv()
-        return state_message.state, state_message.reward, state_message.done, {}
 
-    def reset(self):
+        state_message = self.connection.recv()
+        return state_message.state, state_message.reward, state_message.done, {}, {}
+
+    def reset(self,
+              *,
+              seed: int | None = None,
+              options: dict[str, Any] | None = None):
         print("RESETTING ENVIRONMENT!!!!!!!!!!!!!")
         if self.connection is not None:
             self.connection.close()
@@ -51,6 +52,4 @@ class Sc2Env(gym.Env):
         p.start()
 
         state = np.zeros(GB.OBSERVATION_SPACE_SHAPE)
-        msg = Message(state=state)
-        self.connection.send(msg)
-        return state  # reward, done, info can't be included
+        return state, None

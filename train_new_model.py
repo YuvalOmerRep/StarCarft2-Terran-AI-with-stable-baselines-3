@@ -3,7 +3,6 @@ import os
 from env import Sc2Env
 import time
 import Globals as GB
-from multiprocessing import Pipe
 
 
 def train_new_model(model_name: str, env: Sc2Env):
@@ -37,4 +36,4 @@ def train_new_model(model_name: str, env: Sc2Env):
 if __name__ == '__main__':
     env = Sc2Env()
 
-    train_new_model(model_name=f"Starting_blind_{int(time.time())}", env=env)
+    train_new_model(model_name=f"model_v2_{int(time.time())}", env=env)
