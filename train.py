@@ -1,3 +1,4 @@
+from sc2.data import Difficulty
 from stable_baselines3 import PPO
 import os
 from env import Sc2Env
@@ -6,15 +7,15 @@ import common
 import torch
 
 
-def train_new_model(model_name: str):
+def train_new_model(model_name: str, difficulty=Difficulty.Hard):
     """
     A function that trains a new model using the sc2 environment
 
     :param model_name: The name of the new model, model will be saved in models/[model_name]
-    :param env: the environment the training will be held on
+    :param difficulty: the difficulty of the bot the model trains against
     """
     model_name = f"{model_name}_{int(time.time())}"
-    env = Sc2Env()
+    env = Sc2Env(difficulty=difficulty)
     models_dir = f"models/{model_name}/"
     logdir = f"logs/{model_name}/"
 
@@ -34,17 +35,18 @@ def train_new_model(model_name: str):
         model.save(f"{models_dir}/{common.total_steps * iters}")
 
 
-def load_and_train(model_name: str, from_num_steps: str):
+def load_and_train(model_name: str, from_num_steps: str, difficulty=Difficulty.Hard):
     """
     A function that loads a model and continues to train it on the sc2 environment
 
     :param model_name: The model to be loaded
     :param from_num_steps: the number of steps from which to continue training
+    :param difficulty: the difficulty of the bot the model trains against
     """
     load_model = f"models/{model_name}/{from_num_steps}.zip"
 
     # load the model:
-    model = PPO.load(load_model, env=Sc2Env())
+    model = PPO.load(load_model, env=Sc2Env(difficulty=difficulty))
 
     models_dir = f"models/{model_name}/"
 

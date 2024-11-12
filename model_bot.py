@@ -173,10 +173,10 @@ class ReinforcementBot(BotAI):  # inherits from BotAI (part of BurnySC2)
 
 
 
-def run_game_with_model_bot(conn):
+def run_game_with_model_bot(conn, difficulty):
     result = run_game(maps.get("AbyssalReefLE"),
                       [Bot(Race.Terran, ReinforcementBot(Reward_damage_and_unit_with_step_punishment, conn)),
-                       Computer(Race.Protoss, Difficulty.Hard)], realtime=False, disable_fog=True)
+                       Computer(Race.Protoss, difficulty)], realtime=False, disable_fog=True)
 
     if str(result) == "Result.Victory":
         rwd = 500

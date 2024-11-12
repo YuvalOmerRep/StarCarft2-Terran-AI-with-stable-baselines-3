@@ -5,6 +5,9 @@ import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
 from multiprocessing import Process, Pipe
+
+from sc2.data import Difficulty
+
 import common
 import Utils
 from Utils import Message
@@ -14,7 +17,7 @@ from model_bot import run_game_with_model_bot
 class Sc2Env(gym.Env):
     """Custom Environment that follows gym interface"""
 
-    def __init__(self, what_to_run="model_bot.py"):
+    def __init__(self, what_to_run="model_bot.py", difficulty=Difficulty.Hard):
         super(Sc2Env, self).__init__()
         # Define action and observation space
         # They must be gym.spaces objects
@@ -24,6 +27,7 @@ class Sc2Env(gym.Env):
         self.run_sc2 = what_to_run
 
         self.connection = None
+        self.difficulty = difficulty
 
     def _recv_type(self, message_type: type):
         message = self.connection.recv()
@@ -49,7 +53,7 @@ class Sc2Env(gym.Env):
         father_conn, child_conn = Pipe()
         self.connection = father_conn
 
-        p = Process(target=run_game_with_model_bot, args=(child_conn,))
+        p = Process(target=run_game_with_model_bot, args=(child_conn,self.difficulty))
         p.start()
 
         state = Utils.create_state()

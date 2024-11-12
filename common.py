@@ -4,7 +4,7 @@ from math import pi
 
 GAME_TIME_LIMIT = 1200
 
-total_steps = 10000
+total_steps = 100000
 
 START_ITERATION = 1
 
@@ -43,18 +43,14 @@ MINERAL_CLOSER_THAN_DISTANCE = 15
 
 # constants for stable-baselines3 use
 OBSERVATION_SPACE_SHAPE_MAP = (200, 176, 3)
-OBSERVATION_SPACE_SHAPE_INFO = (87,)
+OBSERVATION_SPACE_SHAPE_INFO = (300,)
 ACTION_SPACE_SIZE = 55
-HIDDEN_STATE_SIZE = 100
 LOW_BOUND = -np.inf
 HIGH_BOUND = np.inf
 
-# constant for Data_Scraper.py
-DATA_DIR = "Data"
-
 # constants for feature extractor
 MINIMAL_ENERGY = 50
-MEMORY_SIZE = 20
+MEMORY_SIZE = 233
 RADIUS_FROM_LOCATION = 30
 
 protoss_units_list = [UId.PROBE, UId.ZEALOT, UId.STALKER, UId.ORACLE, UId.ARCHON, UId.CARRIER, UId.COLOSSUS,
