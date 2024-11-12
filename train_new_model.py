@@ -2,7 +2,7 @@ from stable_baselines3 import PPO
 import os
 from env import Sc2Env
 import time
-import Globals as GB
+import common as GB
 import torch
 
 

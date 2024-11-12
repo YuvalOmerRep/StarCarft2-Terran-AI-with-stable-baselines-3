@@ -3,7 +3,7 @@ import numpy as np
 from sc2.ids.unit_typeid import UnitTypeId as UId
 from sc2.ids.buff_id import BuffId as BId
 from sc2.ids.upgrade_id import UpgradeId as UpId
-import Globals
+import common
 import math
 
 
@@ -17,7 +17,7 @@ def get_amount(uid: UId, group) -> int:
 class Extractor:
     def __init__(self, bot: BotAI):
         self.bot_to_extract_from = bot
-        self.action_memory = [-1 for i in range(Globals.MEMORY_SIZE)]
+        self.action_memory = [-1 for i in range(common.MEMORY_SIZE)]
 
     def generate_vectors(self, action: int, iteration: int) -> np.array:
         is_stimmed = self.get_is_stimmed()
@@ -42,19 +42,19 @@ class Extractor:
 
         vector += \
             [get_amount(i, self.bot_to_extract_from.units)
-             for i in Globals.terran_unit_list]  # ally_units
+             for i in common.terran_unit_list]  # ally_units
 
         vector += \
             [get_amount(i, self.bot_to_extract_from.structures)
-             for i in Globals.terran_structures_list]  # ally_buildings
+             for i in common.terran_structures_list]  # ally_buildings
 
         vector += \
             [get_amount(i, self.bot_to_extract_from.enemy_units)
-             for i in Globals.protoss_units_list]  # enemy_units
+             for i in common.protoss_units_list]  # enemy_units
 
         vector += \
             [get_amount(i, self.bot_to_extract_from.enemy_structures)
-             for i in Globals.protoss_structures_list]  # enemy_buildings
+             for i in common.protoss_structures_list]  # enemy_buildings
 
         return vector
 
@@ -71,7 +71,7 @@ class Extractor:
 
     def command_center_has_energy_for_ability(self):
         for townhall in self.bot_to_extract_from.townhalls:
-            if townhall.energy >= Globals.ENERGY_FOR_MULE_OR_SCAN:
+            if townhall.energy >= common.ENERGY_FOR_MULE_OR_SCAN:
                 return 1
         return 0
 
@@ -110,7 +110,7 @@ class basic_feature_extractor(Extractor):
 
 def amount_from_location_and_group(group, location):
     ally_units_in_location_radius = \
-        group.closer_than(Globals.RADIUS_FROM_LOCATION, location)
+        group.closer_than(common.RADIUS_FROM_LOCATION, location)
     if ally_units_in_location_radius:
         return ally_units_in_location_radius.amount
     else:
@@ -121,7 +121,7 @@ class feature_extractor_with_map(Extractor):
 
     def __init__(self, bot: BotAI):
         super().__init__(bot)
-        self.action_memory = [-1 for i in range(Globals.MEMORY_SIZE)]
+        self.action_memory = [-1 for i in range(common.MEMORY_SIZE)]
         self.locations_sorted = []
 
     async def initialize_location_list(self, locations_sorted):
@@ -140,7 +140,7 @@ class feature_extractor_with_map(Extractor):
 
     def command_center_has_energy_for_ability(self):
         for townhall in self.bot_to_extract_from.townhalls:
-            if townhall.energy >= Globals.ENERGY_FOR_MULE_OR_SCAN:
+            if townhall.energy >= common.ENERGY_FOR_MULE_OR_SCAN:
                 return 1
         return 0
 
@@ -156,7 +156,7 @@ class feature_extractor_with_map(Extractor):
         # draw the minerals:
         for mineral in self.bot_to_extract_from.mineral_field:
             pos = mineral.position
-            c = Globals.MINERAL_COLOR
+            c = common.MINERAL_COLOR
             fraction = mineral.mineral_contents / 1800
             if mineral.is_visible:
                 # print(mineral.mineral_contents)
@@ -173,7 +173,7 @@ class feature_extractor_with_map(Extractor):
         # draw the enemy units:
         for enemy_unit in self.bot_to_extract_from.enemy_units:
             pos = enemy_unit.position
-            c = Globals.ENEMY_UNIT_COLOR
+            c = common.ENEMY_UNIT_COLOR
             # get unit health fraction:
             fraction = enemy_unit.health / enemy_unit.health_max if enemy_unit.health_max > 0 else 0.0001
             game_map[math.ceil(pos.y)][math.ceil(pos.x)] = [int(fraction * i) for i in c]
@@ -181,7 +181,7 @@ class feature_extractor_with_map(Extractor):
         # draw the enemy structures:
         for enemy_structure in self.bot_to_extract_from.enemy_structures:
             pos = enemy_structure.position
-            c = Globals.ENEMY_STRUCTURE_COLOR
+            c = common.ENEMY_STRUCTURE_COLOR
             # get structure health fraction:
             fraction = enemy_structure.health / enemy_structure.health_max if enemy_structure.health_max > 0 else 0.0001
             game_map[math.ceil(pos.y)][math.ceil(pos.x)] = [int(fraction * i) for i in c]
@@ -191,14 +191,14 @@ class feature_extractor_with_map(Extractor):
             # if it's a nexus:
             if our_structure.type_id == UId.NEXUS:
                 pos = our_structure.position
-                c = Globals.ALLY_BASE_COLOR
+                c = common.ALLY_BASE_COLOR
                 # get structure health fraction:
                 fraction = our_structure.health / our_structure.health_max if our_structure.health_max > 0 else 0.0001
                 game_map[math.ceil(pos.y)][math.ceil(pos.x)] = [int(fraction * i) for i in c]
 
             else:
                 pos = our_structure.position
-                c = Globals.ALLY_STRUCTURE_COLOR
+                c = common.ALLY_STRUCTURE_COLOR
                 # get structure health fraction:
                 fraction = our_structure.health / our_structure.health_max if our_structure.health_max > 0 else 0.0001
                 game_map[math.ceil(pos.y)][math.ceil(pos.x)] = [int(fraction * i) for i in c]
@@ -211,7 +211,7 @@ class feature_extractor_with_map(Extractor):
             # vesp position: (50.5, 63.5)
             # bldg positions: [(64.369873046875, 58.982421875), (52.85693359375, 51.593505859375),...]
             pos = vespene.position
-            c = Globals.VESPENE_COLOR
+            c = common.VESPENE_COLOR
             fraction = vespene.vespene_contents / 2250
 
             if vespene.is_visible:
@@ -225,7 +225,7 @@ class feature_extractor_with_map(Extractor):
                                     UId.MEDIVAC, UId.MARAUDER, UId.THOR]:
 
                 pos = our_unit.position
-                c = Globals.MARINE_COLOR
+                c = common.MARINE_COLOR
                 # get health:
                 fraction = our_unit.health / our_unit.health_max if our_unit.health_max > 0 else 0.0001
                 game_map[math.ceil(pos.y)][math.ceil(pos.x)] = [int(fraction * i) for i in c]
@@ -233,7 +233,7 @@ class feature_extractor_with_map(Extractor):
 
             else:
                 pos = our_unit.position
-                c = Globals.SCV_COLOR
+                c = common.SCV_COLOR
                 # get health:
                 fraction = our_unit.health / our_unit.health_max if our_unit.health_max > 0 else 0.0001
                 game_map[math.ceil(pos.y)][math.ceil(pos.x)] = [int(fraction * i) for i in c]

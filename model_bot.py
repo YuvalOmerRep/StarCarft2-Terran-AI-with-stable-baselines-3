@@ -5,9 +5,11 @@ from sc2.main import run_game  # function that facilitates actually running the 
 from sc2.player import Bot, Computer  # wrapper for whether the agent is one of your bots, or a "computer" player
 from sc2 import maps  # maps method for loading maps to play in.
 import numpy as np
+
+import Utils
 from Feature_Extractors import feature_extractor_with_map
 import Terran_Strategy
-import Globals
+import common
 from Terran_Strategy import Random_Strategy
 from Utils import Message
 from Rewards import Reward_damage_and_unit_with_step_punishment
@@ -38,7 +40,7 @@ class ReinforcementBot(BotAI):  # inherits from BotAI (part of BurnySC2)
         self.conn = con
 
     async def on_step(self, iteration: int):  # on_step is a method that is called every step of the game.
-        if iteration == Globals.START_ITERATION:
+        if iteration == common.START_ITERATION:
             all_expansions_locations_sorted = self.start_location.sort_by_distance(self.expansion_locations_list)
             await self.features_extractor.initialize_location_list(all_expansions_locations_sorted)
             await self.strategy.initialize_location_list(all_expansions_locations_sorted)
@@ -84,12 +86,13 @@ class ReinforcementBot(BotAI):  # inherits from BotAI (part of BurnySC2)
         '''
 
         chosen_action_lst = self.strategy.actions_list[action]
-        if iteration <= Globals.START_ITERATION:
+        if iteration <= common.START_ITERATION:
             reward = 0
         else:
             reward = await chosen_action_lst[0]()
 
         feature_state, game_map = self.features_extractor.generate_vectors(action, iteration)
+        state = Utils.create_state(game_map=game_map, game_info=feature_state)
 
         self.took_damage = False
 
@@ -100,12 +103,12 @@ class ReinforcementBot(BotAI):  # inherits from BotAI (part of BurnySC2)
         self.my_units_died_since_last_action = []
         self.enemy_units_died_since_last_action = []
         self.units_created_this_frame = []
-        if self.time > Globals.GAME_TIME_LIMIT - 15:
+        if self.time > common.GAME_TIME_LIMIT - 15:
             global end_game_reward
             self.end_game.update(self.reward_system.get_total_dmg_reward())
             end_game_reward = self.end_game.calculate_reward(self.enemy_units, self.units, self.units, iteration)
 
-        state_reward_msg = Message(state=game_map, reward=reward)
+        state_reward_msg = Message(state=state, reward=reward)
 
         if iteration % 1000 == 0:
             print(reward)
@@ -182,6 +185,6 @@ def run_game_with_model_bot(conn):
     else:
         rwd = -500
 
-    state = np.zeros(Globals.OBSERVATION_SPACE_SHAPE)
+    state = np.zeros(common.OBSERVATION_SPACE_SHAPE_MAP)
     game_done_message = Message(state=state, reward=rwd, done=True)
     conn.send(game_done_message)

@@ -1,6 +1,6 @@
 from sc2.bot_ai import BotAI
 from sc2.units import UnitTypeId as UId
-import Globals as GB
+import common as GB
 from math import floor
 
 

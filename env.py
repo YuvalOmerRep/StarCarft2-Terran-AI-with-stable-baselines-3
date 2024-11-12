@@ -5,7 +5,8 @@ import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
 from multiprocessing import Process, Pipe
-import Globals as GB
+import common
+import Utils
 from Utils import Message
 from model_bot import run_game_with_model_bot
 
@@ -17,9 +18,9 @@ class Sc2Env(gym.Env):
         super(Sc2Env, self).__init__()
         # Define action and observation space
         # They must be gym.spaces objects
-        self.action_space = spaces.Discrete(GB.ACTION_SPACE_SIZE)
-        self.observation_space = spaces.Box(low=GB.LOW_BOUND, high=GB.HIGH_BOUND,
-                                            shape=GB.OBSERVATION_SPACE_SHAPE, dtype=np.float16)
+        self.action_space = spaces.Discrete(common.ACTION_SPACE_SIZE)
+        self.observation_space = spaces.Dict({"map": spaces.Box(low=common.LOW_BOUND, high=common.HIGH_BOUND, shape=common.OBSERVATION_SPACE_SHAPE_MAP, dtype=np.float16),
+                                              "info": spaces.Box(low=common.LOW_BOUND, high=common.HIGH_BOUND, shape=common.OBSERVATION_SPACE_SHAPE_INFO, dtype=np.float16)})
         self.run_sc2 = what_to_run
 
         self.connection = None
@@ -51,5 +52,5 @@ class Sc2Env(gym.Env):
         p = Process(target=run_game_with_model_bot, args=(child_conn,))
         p.start()
 
-        state = np.zeros(GB.OBSERVATION_SPACE_SHAPE)
+        state = Utils.create_state()
         return state, None

@@ -3,7 +3,7 @@ from sc2.player import Bot, Computer
 from sc2.main import run_game
 from sc2.data import Race, Difficulty, Result
 from Random_Terran_Bot import RandomTerranBot
-import Globals as GB
+import common as GB
 
 
 def run_single_game():

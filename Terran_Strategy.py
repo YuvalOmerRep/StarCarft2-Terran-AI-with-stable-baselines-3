@@ -4,7 +4,7 @@ from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId as UId
 from sc2.ids.upgrade_id import UpgradeId as UpId
 from sc2.unit import AbilityId
-import Globals as GB
+import common as GB
 
 
 class Terran_Strategy:

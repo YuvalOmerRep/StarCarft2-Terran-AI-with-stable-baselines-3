@@ -2,7 +2,7 @@ from sc2.bot_ai import BotAI
 from sc2.unit import Unit, AbilityId
 import Terran_Strategy as TS
 from Feature_Extractors import feature_extractor_with_map
-import Globals as GB
+import common as GB
 import cv2
 
 
