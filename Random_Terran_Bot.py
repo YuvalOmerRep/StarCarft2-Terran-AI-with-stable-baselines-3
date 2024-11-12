@@ -1,3 +1,4 @@
+import numpy as np
 from sc2.bot_ai import BotAI
 from sc2.unit import Unit, AbilityId
 import Terran_Strategy as TS
@@ -27,6 +28,8 @@ class RandomTerranBot(BotAI):
 
             vec, game_map = self.features_extractor.generate_vectors(iteration, iteration)
 
+            print(np.max(game_map))
+            print(np.min(game_map))
             print(game_map.shape)
             print(vec.shape)
 

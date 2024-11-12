@@ -24,7 +24,7 @@ def train_new_model(model_name: str):
     if not os.path.exists(logdir):
         os.makedirs(logdir)
 
-    model = PPO('MlpPolicy', env, verbose=1, tensorboard_log=logdir, device=torch.device('cuda'))
+    model = PPO('MultiInputPolicy', env, verbose=1, tensorboard_log=logdir, device=torch.device('cuda'))
 
     iters = 0
     while True:

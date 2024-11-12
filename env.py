@@ -19,7 +19,7 @@ class Sc2Env(gym.Env):
         # Define action and observation space
         # They must be gym.spaces objects
         self.action_space = spaces.Discrete(common.ACTION_SPACE_SIZE)
-        self.observation_space = spaces.Dict({"map": spaces.Box(low=common.LOW_BOUND, high=common.HIGH_BOUND, shape=common.OBSERVATION_SPACE_SHAPE_MAP, dtype=np.float16),
+        self.observation_space = spaces.Dict({"map": spaces.Box(low=0, high=255, shape=common.OBSERVATION_SPACE_SHAPE_MAP, dtype=np.uint8),
                                               "info": spaces.Box(low=common.LOW_BOUND, high=common.HIGH_BOUND, shape=common.OBSERVATION_SPACE_SHAPE_INFO, dtype=np.float16)})
         self.run_sc2 = what_to_run
 
