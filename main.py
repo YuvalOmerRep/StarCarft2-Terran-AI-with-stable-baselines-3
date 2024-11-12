@@ -1,7 +1,6 @@
 import sys
 
-from train_new_model import train_new_model
-from load_and_train_model import load_and_train
+from train import train_new_model, load_and_train
 
 def main(argv, argc):
     if argc == 3 and argv[1] == "new":
