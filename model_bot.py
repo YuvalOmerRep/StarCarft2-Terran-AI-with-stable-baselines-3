@@ -1,10 +1,9 @@
 from sc2.bot_ai import BotAI  # parent class we inherit from
-from sc2.data import Difficulty, Race  # difficulty for bots, race for the 1 of 3 races
+from sc2.data import Difficulty, Race, Result  # difficulty for bots, race for the 1 of 3 races
 from sc2.unit import AbilityId, Unit
 from sc2.main import run_game  # function that facilitates actually running the agents in games
 from sc2.player import Bot, Computer  # wrapper for whether the agent is one of your bots, or a "computer" player
 from sc2 import maps  # maps method for loading maps to play in.
-import numpy as np
 
 import Utils
 from Feature_Extractors import feature_extractor_with_map
@@ -12,22 +11,18 @@ import Terran_Strategy
 import common
 from Terran_Strategy import Random_Strategy
 from Utils import Message
-from Rewards import Reward_damage_and_unit_with_step_punishment
-from Rewards import Reward_end_game
+from Rewards import RewardDamageAndUnitWithStepPunishment, Rewards
 from sc2.ids.unit_typeid import UnitTypeId as UId
 from multiprocessing import connection
 
-end_game_reward = 0
-
 
 class ReinforcementBot(BotAI):  # inherits from BotAI (part of BurnySC2)
-    end_game: Reward_end_game
     strategy: Random_Strategy
     conn: connection
+    reward_system: Rewards
 
     def __init__(self, reward_system, con: connection):
         super().__init__()
-        self.end_game = Reward_end_game(self)
         self.strategy = Terran_Strategy.Random_Strategy(self)
         self.features_extractor = feature_extractor_with_map(self)
         self.reward_system = reward_system(self)
@@ -96,22 +91,13 @@ class ReinforcementBot(BotAI):  # inherits from BotAI (part of BurnySC2)
 
         self.took_damage = False
 
-        reward += self.reward_system.calculate_reward(self.enemy_units_died_since_last_action,
-                                                      self.my_units_died_since_last_action,
-                                                      self.units_created_this_frame, iteration)
+        reward += self.reward_system.calculate_reward(self.enemy_units_died_since_last_action, iteration)
 
         self.my_units_died_since_last_action = []
         self.enemy_units_died_since_last_action = []
         self.units_created_this_frame = []
-        if self.time > common.GAME_TIME_LIMIT - 15:
-            global end_game_reward
-            self.end_game.update(self.reward_system.get_total_dmg_reward())
-            end_game_reward = self.end_game.calculate_reward(self.enemy_units, self.units, self.units, iteration)
 
         state_reward_msg = Message(state=state, reward=reward)
-
-        if iteration % 1000 == 0:
-            print(reward)
 
         self.conn.send(state_reward_msg)
 
@@ -173,18 +159,21 @@ class ReinforcementBot(BotAI):  # inherits from BotAI (part of BurnySC2)
 
 
 
-def run_game_with_model_bot(conn, difficulty):
+def run_game_with_model_bot(conn, difficulty: Difficulty):
     result = run_game(maps.get("AbyssalReefLE"),
-                      [Bot(Race.Terran, ReinforcementBot(Reward_damage_and_unit_with_step_punishment, conn)),
+                      [Bot(Race.Terran, ReinforcementBot(RewardDamageAndUnitWithStepPunishment, conn)),
                        Computer(Race.Protoss, difficulty)], realtime=False, disable_fog=True)
 
-    if str(result) == "Result.Victory":
+
+    if result == Result.Victory:
+        print("\033[92mWinner Winner chicken dinner!\033[0m")
         rwd = 500
-    elif str(result) == "Result.Tie":
-        rwd = end_game_reward
+    elif result == Result.Tie:
+        print("\033[92mTie that Tie!\033[0m")
+        rwd = 0
     else:
+        print("\033[92mLost Once again\033[0m")
         rwd = -500
 
-    state = np.zeros(common.OBSERVATION_SPACE_SHAPE_MAP)
-    game_done_message = Message(state=state, reward=rwd, done=True)
+    game_done_message = Message(state=Utils.create_state(), reward=rwd, done=True)
     conn.send(game_done_message)
