@@ -5,6 +5,7 @@ from sc2.ids.buff_id import BuffId as BId
 from sc2.ids.upgrade_id import UpgradeId as UpId
 import common
 import math
+from Utils import Memory
 
 
 def get_amount(uid: UId, group) -> int:
@@ -17,14 +18,11 @@ def get_amount(uid: UId, group) -> int:
 class Extractor:
     def __init__(self, bot: BotAI):
         self.bot_to_extract_from = bot
-        self.action_memory = [-1 for i in range(common.MEMORY_SIZE)]
 
     def generate_vectors(self, action: int, iteration: int) -> np.array:
         is_stimmed = self.get_is_stimmed()
         has_energy = self.command_center_has_energy_for_ability()
 
-        self.action_memory.pop(0)
-        self.action_memory.append(action)
 
         vector = [self.bot_to_extract_from.minerals, self.bot_to_extract_from.vespene, iteration,
                   self.bot_to_extract_from.supply_used, self.bot_to_extract_from.supply_cap, is_stimmed, has_energy,
@@ -37,8 +35,6 @@ class Extractor:
                   self.bot_to_extract_from.already_pending_upgrade(UpId.STIMPACK),
                   self.bot_to_extract_from.already_pending_upgrade(UpId.SHIELDWALL)
                   ]
-
-        vector += self.action_memory
 
         vector += \
             [get_amount(i, self.bot_to_extract_from.units)
@@ -121,7 +117,7 @@ class feature_extractor_with_map(Extractor):
 
     def __init__(self, bot: BotAI):
         super().__init__(bot)
-        self.action_memory = [-1 for i in range(common.MEMORY_SIZE)]
+        self.action_memory = Memory()
         self.locations_sorted = []
 
     async def initialize_location_list(self, locations_sorted):
@@ -146,8 +142,10 @@ class feature_extractor_with_map(Extractor):
 
     def generate_vectors(self, action: int, iteration: int) -> np.array:
         vector = super().generate_vectors(action, iteration)
+        self.action_memory.register_action(action=action, iteration=iteration)
+        memory = self.action_memory.get_memory()
         game_map = self.generate_map()
-        return np.array(vector), game_map
+        return np.append(memory, vector), game_map
 
     def generate_map(self):
         game_map = np.zeros((self.bot_to_extract_from.game_info.map_size[0],
