@@ -5,7 +5,7 @@ from sc2.ids.buff_id import BuffId as BId
 from sc2.ids.upgrade_id import UpgradeId as UpId
 import common
 import math
-from Utils import Memory
+from Utils import Memory, get_x_y_of_pos
 
 
 def get_amount(uid: UId, group) -> int:
@@ -156,50 +156,55 @@ class feature_extractor_with_map(Extractor):
             pos = mineral.position
             c = common.MINERAL_COLOR
             fraction = mineral.mineral_contents / 1800
+            x, y = get_x_y_of_pos(pos, game_map.shape)
             if mineral.is_visible:
-                # print(mineral.mineral_contents)
-                game_map[math.ceil(pos.y)][math.ceil(pos.x)] = [int(fraction * i) for i in c]
+                game_map[y][x] = [int(fraction * i) for i in c]
             else:
-                game_map[math.ceil(pos.y)][math.ceil(pos.x)] = [20, 75, 50]
+                game_map[y][x] = [20, 75, 50]
 
                 # draw the enemy start location:
         for enemy_start_location in self.bot_to_extract_from.enemy_start_locations:
             pos = enemy_start_location
+            x, y = get_x_y_of_pos(pos, game_map.shape)
             c = [0, 0, 255]
-            game_map[math.ceil(pos.y)][math.ceil(pos.x)] = c
+            game_map[y][x] = c
 
         # draw the enemy units:
         for enemy_unit in self.bot_to_extract_from.enemy_units:
             pos = enemy_unit.position
+            x, y = get_x_y_of_pos(pos, game_map.shape)
             c = common.ENEMY_UNIT_COLOR
             # get unit health fraction:
             fraction = enemy_unit.health / enemy_unit.health_max if enemy_unit.health_max > 0 else 0.0001
-            game_map[math.ceil(pos.y)][math.ceil(pos.x)] = [int(fraction * i) for i in c]
+            game_map[y][x] = [int(fraction * i) for i in c]
 
         # draw the enemy structures:
         for enemy_structure in self.bot_to_extract_from.enemy_structures:
             pos = enemy_structure.position
+            x, y = get_x_y_of_pos(pos, game_map.shape)
             c = common.ENEMY_STRUCTURE_COLOR
             # get structure health fraction:
             fraction = enemy_structure.health / enemy_structure.health_max if enemy_structure.health_max > 0 else 0.0001
-            game_map[math.ceil(pos.y)][math.ceil(pos.x)] = [int(fraction * i) for i in c]
+            game_map[y][x] = [int(fraction * i) for i in c]
 
         # draw our structures:
         for our_structure in self.bot_to_extract_from.structures:
             # if it's a nexus:
             if our_structure.type_id == UId.NEXUS:
                 pos = our_structure.position
+                x, y = get_x_y_of_pos(pos, game_map.shape)
                 c = common.ALLY_BASE_COLOR
                 # get structure health fraction:
                 fraction = our_structure.health / our_structure.health_max if our_structure.health_max > 0 else 0.0001
-                game_map[math.ceil(pos.y)][math.ceil(pos.x)] = [int(fraction * i) for i in c]
+                game_map[y][x] = [int(fraction * i) for i in c]
 
             else:
                 pos = our_structure.position
+                x, y = get_x_y_of_pos(pos, game_map.shape)
                 c = common.ALLY_STRUCTURE_COLOR
                 # get structure health fraction:
                 fraction = our_structure.health / our_structure.health_max if our_structure.health_max > 0 else 0.0001
-                game_map[math.ceil(pos.y)][math.ceil(pos.x)] = [int(fraction * i) for i in c]
+                game_map[y][x] = [int(fraction * i) for i in c]
 
         # draw the vespene geysers:
         for vespene in self.bot_to_extract_from.vespene_geyser:
@@ -209,13 +214,14 @@ class feature_extractor_with_map(Extractor):
             # vesp position: (50.5, 63.5)
             # bldg positions: [(64.369873046875, 58.982421875), (52.85693359375, 51.593505859375),...]
             pos = vespene.position
+            x, y = get_x_y_of_pos(pos, game_map.shape)
             c = common.VESPENE_COLOR
             fraction = vespene.vespene_contents / 2250
 
             if vespene.is_visible:
-                game_map[math.ceil(pos.y)][math.ceil(pos.x)] = [int(fraction * i) for i in c]
+                game_map[y][x] = [int(fraction * i) for i in c]
             else:
-                game_map[math.ceil(pos.y)][math.ceil(pos.x)] = [50, 20, 75]
+                game_map[y][x] = [50, 20, 75]
 
         # draw our units:
         for our_unit in self.bot_to_extract_from.units:
@@ -223,18 +229,20 @@ class feature_extractor_with_map(Extractor):
                                     UId.MEDIVAC, UId.MARAUDER, UId.THOR]:
 
                 pos = our_unit.position
+                x, y = get_x_y_of_pos(pos, game_map.shape)
                 c = common.MARINE_COLOR
                 # get health:
                 fraction = our_unit.health / our_unit.health_max if our_unit.health_max > 0 else 0.0001
-                game_map[math.ceil(pos.y)][math.ceil(pos.x)] = [int(fraction * i) for i in c]
+                game_map[y][x] = [int(fraction * i) for i in c]
 
 
             else:
                 pos = our_unit.position
+                x, y = get_x_y_of_pos(pos, game_map.shape)
                 c = common.SCV_COLOR
                 # get health:
                 fraction = our_unit.health / our_unit.health_max if our_unit.health_max > 0 else 0.0001
-                game_map[math.ceil(pos.y)][math.ceil(pos.x)] = [int(fraction * i) for i in c]
+                game_map[y][x] = [int(fraction * i) for i in c]
 
                 # show map with opencv, resized to be larger:
                 # horizontal flip:

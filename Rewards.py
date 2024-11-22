@@ -28,27 +28,32 @@ class RewardDamageAndUnitWithStepPunishment(Rewards):
         reward += self._give_reward_for_units_and_structures()
         reward += self.total_dmg_reward
         reward_after_time_punishment = reward * common.step_punishment[iteration]
-        if not iteration % 100:
-            print(f"at iteration: {iteration}, reward pre time punishment: {reward}, time punishment: {common.step_punishment[iteration-1]} at final reward: {reward_after_time_punishment}")
+        if not iteration % 1000:
+            print(f"at iteration: {iteration}, reward per time punishment: {reward}, time punishment: {common.step_punishment[iteration]} at final reward: {reward_after_time_punishment}")
         return reward_after_time_punishment
 
     def _give_reward_for_units_and_structures(self) -> float:
         reward = 0
 
-        too_many_engineering_bays = self.agent.units(UId.ENGINEERINGBAY).amount > 2
-
         for unit in self.agent.units:
-            reward_for_unit = self._give_bonus_for_unit_type(unit.type_id)
-            if unit.type_id == UId.ENGINEERINGBAY and too_many_engineering_bays:
-                reward_for_unit = -reward_for_unit
+            reward_for_unit = self._give_bonus_for_unit_type(unit.type_id, common.UNIT_REWARD_MODIFIER)
             reward += reward_for_unit
+
+        seen_engineering_bays = 0
+        for structure in self.agent.structures:
+            reward_for_structure = self._give_bonus_for_unit_type(structure.type_id, common.STRUCTURE_REWARD_MODIFIER)
+            if structure.type_id == UId.ENGINEERINGBAY:
+                seen_engineering_bays += 1
+                if seen_engineering_bays > 2:
+                    reward_for_structure = -reward_for_structure * seen_engineering_bays
+            reward += reward_for_structure
 
         return reward
 
-    def _give_bonus_for_unit_type(self, uid: UId) -> float:
+    def _give_bonus_for_unit_type(self, uid: UId, reward: float) -> float:
         try:
             cost = self.agent.calculate_cost(uid)
-            return (cost.minerals + cost.vespene) * common.UNIT_REWARD_MODIFIER
+            return (cost.minerals + cost.vespene) * reward
         except:
             return 0
 

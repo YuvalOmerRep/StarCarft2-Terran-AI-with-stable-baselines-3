@@ -46,52 +46,16 @@ class ReinforcementBot(BotAI):  # inherits from BotAI (part of BurnySC2)
 
         await self.distribute_workers()  # put idle workers back to work
 
-        # todo: fix list of commands names
-        '''
-        0: build_from_command_center
-        1: expand_now
-        2: build_refinery
-        3: build_supply_depo
-        4: build_factory
-        5: build_barracks
-        6: build_engineeringbay
-        7: build_marine
-        8: build_marauder
-        9: build_tank
-        10: build_thor
-        11: build_reactor
-        12: build_techlab
-        13: build_armory
-        14: upgrade_ground_weapons
-        15: upgrade_ground_armor
-        16: build_starport
-        17: build_from_starport
-        18: upgrade_bio
-        19: upgrade_marine
-        20: stim_army
-        21: siege_tanks
-        22: attack_enemy_main
-        23: attack_enemy_units
-        24: attack_enemy_structures
-        25: gather_units_at_outpost
-        26: gather_units_in_front_of_third
-        27: hold_position_all_army
-        28: drop_mule
-        29: scan_army
-        '''
-
         chosen_action_lst = self.strategy.actions_list[action]
-        if iteration <= common.START_ITERATION:
-            reward = 0
-        else:
-            reward = await chosen_action_lst[0]()
+        if iteration > common.START_ITERATION:
+            await chosen_action_lst[0]()
 
         feature_state, game_map = self.features_extractor.generate_vectors(action, iteration)
         state = Utils.create_state(game_map=game_map, game_info=feature_state)
 
         self.took_damage = False
 
-        reward += self.reward_system.calculate_reward(self.enemy_units_died_since_last_action, iteration)
+        reward = self.reward_system.calculate_reward(self.enemy_units_died_since_last_action, iteration)
 
         self.my_units_died_since_last_action = []
         self.enemy_units_died_since_last_action = []
@@ -135,7 +99,6 @@ class ReinforcementBot(BotAI):  # inherits from BotAI (part of BurnySC2)
             self.units_created_this_frame.append(unit.type_id)
         return await super().on_unit_created(unit)
 
-    # todo: Might crush game
     async def on_unit_destroyed(self, unit_tag: int):
         try:
             dict_entry = self.units_dict_tags[unit_tag]

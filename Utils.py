@@ -1,3 +1,5 @@
+import math
+
 import numpy as np
 from queue import Queue
 
@@ -36,3 +38,6 @@ def create_state(game_map=None, game_info=None):
     if game_info is None:
         game_info = np.zeros(common.OBSERVATION_SPACE_SHAPE_INFO)
     return {"map": game_map, "info": game_info}
+
+def get_x_y_of_pos(pos, shape):
+    return min(math.ceil(pos.x), shape[1] - 1), min(math.ceil(pos.y), shape[0] - 1)
