@@ -41,11 +41,11 @@ class RewardDamageAndUnitWithStepPunishment(Rewards):
 
         seen_engineering_bays = 0
         for structure in self.agent.structures:
-            reward_for_structure = self._give_bonus_for_unit_type(structure.type_id, common.STRUCTURE_REWARD_MODIFIER)
             if structure.type_id == UId.ENGINEERINGBAY:
                 seen_engineering_bays += 1
                 if seen_engineering_bays > 2:
-                    reward_for_structure = -reward_for_structure * seen_engineering_bays
+                    continue
+            reward_for_structure = self._give_bonus_for_unit_type(structure.type_id, common.STRUCTURE_REWARD_MODIFIER)
             reward += reward_for_structure
 
         return reward
