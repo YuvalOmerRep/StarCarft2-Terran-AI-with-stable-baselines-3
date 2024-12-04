@@ -16,6 +16,8 @@ from sc2.ids.unit_typeid import UnitTypeId as UId
 from multiprocessing import connection
 
 
+last_iteration = 0
+
 class ReinforcementBot(BotAI):  # inherits from BotAI (part of BurnySC2)
     strategy: Random_Strategy
     conn: connection
@@ -34,7 +36,10 @@ class ReinforcementBot(BotAI):  # inherits from BotAI (part of BurnySC2)
 
         self.conn = con
 
-    async def on_step(self, iteration: int):  # on_step is a method that is called every step of the game.
+    async def on_step(self, iteration: int):
+        global last_iteration
+        last_iteration = iteration
+        # on_step is a method that is called every step of the game.
         if iteration == common.START_ITERATION:
             all_expansions_locations_sorted = self.start_location.sort_by_distance(self.expansion_locations_list)
             await self.features_extractor.initialize_location_list(all_expansions_locations_sorted)
@@ -130,7 +135,7 @@ def run_game_with_model_bot(conn, difficulty: Difficulty):
 
     if result == Result.Victory:
         print("\033[92mWinner Winner chicken dinner!\033[0m")
-        rwd = 500
+        rwd = 1000 * common.step_punishment[last_iteration]
     elif result == Result.Tie:
         print("\033[92mTie that Tie!\033[0m")
         rwd = 0

@@ -25,35 +25,29 @@ class RewardDamageAndUnitWithStepPunishment(Rewards):
     def calculate_reward(self, enemy_dead, iteration) -> float:
         reward = 0
         self._give_reward_for_killing(enemy_dead)
-        reward += self._give_reward_for_units_and_structures()
+        reward += self._give_reward_for_units()
         reward += self.total_dmg_reward
         reward_after_time_punishment = reward * common.step_punishment[iteration]
         if not iteration % 1000:
             print(f"at iteration: {iteration}, reward per time punishment: {reward}, time punishment: {common.step_punishment[iteration]} at final reward: {reward_after_time_punishment}")
         return reward_after_time_punishment
 
-    def _give_reward_for_units_and_structures(self) -> float:
+    def _give_reward_for_units(self) -> float:
         reward = 0
 
         for unit in self.agent.units:
-            reward_for_unit = self._give_bonus_for_unit_type(unit.type_id, common.UNIT_REWARD_MODIFIER)
-            reward += reward_for_unit
-
-        seen_engineering_bays = 0
-        for structure in self.agent.structures:
-            if structure.type_id == UId.ENGINEERINGBAY:
-                seen_engineering_bays += 1
-                if seen_engineering_bays > 2:
-                    continue
-            reward_for_structure = self._give_bonus_for_unit_type(structure.type_id, common.STRUCTURE_REWARD_MODIFIER)
-            reward += reward_for_structure
+            if unit.is_structure:
+                continue
+            reward += self._give_bonus_for_unit_type_and_upgrade_levels(unit.type_id, common.UNIT_REWARD_MODIFIER, unit.attack_upgrade_level, unit.armor_upgrade_level)
 
         return reward
 
-    def _give_bonus_for_unit_type(self, uid: UId, reward: float) -> float:
+    def _give_bonus_for_unit_type_and_upgrade_levels(self, uid: UId, reward_modifier: float, attack_upgrade_level: int, armor_upgrade_level: int) -> float:
         try:
             cost = self.agent.calculate_cost(uid)
-            return (cost.minerals + cost.vespene) * reward
+            reward_for_unit = (cost.minerals + cost.vespene) * reward_modifier
+            reward_for_unit += reward_for_unit * ((attack_upgrade_level + armor_upgrade_level) * common.UNIT_UPGRADE_REWARD_MODIFIER)
+            return reward_for_unit
         except:
             return 0
 

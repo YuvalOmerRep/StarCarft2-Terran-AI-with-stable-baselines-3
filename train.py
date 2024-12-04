@@ -7,6 +7,15 @@ import common
 import torch
 
 
+def _train(model: PPO, models_dir: str, was_at_iteration: int):
+    iters = 0
+    while True:
+        iters += 1
+        print("On iteration: ", iters)
+        model.learn(total_timesteps=common.total_steps, reset_num_timesteps=False, tb_log_name=f"PPO")
+        model.save(f"{models_dir}/{iters + was_at_iteration}")
+
+
 def train_new_model(model_name: str, difficulty=Difficulty.Hard):
     """
     A function that trains a new model using the sc2 environment
@@ -27,13 +36,7 @@ def train_new_model(model_name: str, difficulty=Difficulty.Hard):
 
     model = PPO('MultiInputPolicy', env, verbose=1, tensorboard_log=logdir, device=torch.device('cuda'))
 
-    iters = 0
-    while True:
-        print("On iteration: ", iters)
-        iters += 1
-        model.learn(total_timesteps=common.total_steps, reset_num_timesteps=False, tb_log_name=f"PPO")
-        model.save(f"{models_dir}/{common.total_steps * iters}")
-
+    _train(model, models_dir, was_at_iteration=0)
 
 def load_and_train(model_name: str, from_num_steps: str, difficulty=Difficulty.Hard):
     """
@@ -51,13 +54,7 @@ def load_and_train(model_name: str, from_num_steps: str, difficulty=Difficulty.H
     models_dir = f"models/{model_name}/"
 
     # further train:
-    was_at_iter = int(from_num_steps)
-    iters = 0
-    while True:
-        print("On iteration: ", iters)
-        iters += 1
-        model.learn(total_timesteps=common.total_steps, reset_num_timesteps=False, tb_log_name=f"PPO")
-        model.save(f"{models_dir}/{common.total_steps * iters + was_at_iter}")
+    _train(model, models_dir, was_at_iteration=int(from_num_steps))
 
 if __name__ == '__main__':
     train_new_model(model_name=f"model_v2")
