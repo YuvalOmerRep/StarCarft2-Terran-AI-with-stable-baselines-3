@@ -6,7 +6,7 @@ class Rewards:
     def __init__(self, agent: BotAI):
         self.agent = agent
 
-    def calculate_reward(self, enemy_dead, iteration) -> float:
+    def calculate_reward(self, enemy_dead: list[UId], ally_dead: list[tuple[UId, bool]], iteration: int) -> float:
         raise NotImplementedError
 
     def get_total_dmg_reward(self):
@@ -22,9 +22,10 @@ class RewardDamageAndUnitWithStepPunishment(Rewards):
     def get_total_dmg_reward(self):
         return self.total_dmg_reward
 
-    def calculate_reward(self, enemy_dead, iteration) -> float:
+    def calculate_reward(self, enemy_dead: list[UId], ally_dead: list[tuple[UId, bool]], iteration: int) -> float:
         reward = 0
         self._give_reward_for_killing(enemy_dead)
+        self._give_punishment_for_dying(ally_dead)
         reward += self._give_reward_for_units()
         reward += self.total_dmg_reward
         reward_after_time_punishment = reward * common.step_punishment[iteration]
@@ -36,10 +37,12 @@ class RewardDamageAndUnitWithStepPunishment(Rewards):
         reward = 0
 
         for unit in self.agent.units:
-            if unit.is_structure:
+            if unit.is_structure or unit.type_id == UId.SCV:
                 continue
             reward += self._give_bonus_for_unit_type_and_upgrade_levels(unit.type_id, common.UNIT_REWARD_MODIFIER, unit.attack_upgrade_level, unit.armor_upgrade_level)
 
+        scv_reward = self._give_bonus_for_unit_type_and_upgrade_levels(UId.SCV, common.UNIT_REWARD_MODIFIER, 0, 0)
+        reward += scv_reward * (self.agent.supply_workers - common.STARTING_WORKER_AMOUNT)
         return reward
 
     def _give_bonus_for_unit_type_and_upgrade_levels(self, uid: UId, reward_modifier: float, attack_upgrade_level: int, armor_upgrade_level: int) -> float:
@@ -56,14 +59,27 @@ class RewardDamageAndUnitWithStepPunishment(Rewards):
             reward += (self.agent.units(UId.SCV).amount - common.STARTING_WORKER_AMOUNT) * common.HARVEST_BONUS
         return reward
 
-    def _give_reward_for_killing(self, enemy_dead):
+    def _give_reward_for_killing(self, enemy_dead: list[UId]):
         for enemy_dead_unit in enemy_dead:
 
             try:
                 dead_unit_cost = self.agent.calculate_cost(enemy_dead_unit)
-                potential_reward = \
+                reward = \
                     (dead_unit_cost.minerals + dead_unit_cost.vespene) * common.ENEMY_UNIT_KILLED_REWARD_MODIFIER
 
-                self.total_dmg_reward += potential_reward
+                self.total_dmg_reward += reward
+            except:
+                continue
+
+    def _give_punishment_for_dying(self, ally_dead: list[tuple[UId, bool]]):
+        for ally_dead_unit in ally_dead:
+
+            try:
+                if ally_dead_unit[1]:
+                    dead_unit_cost = self.agent.calculate_cost(ally_dead_unit[0])
+                    punishment = \
+                        (dead_unit_cost.minerals + dead_unit_cost.vespene) * common.ALLY_UNIT_KILLED_REWARD_MODIFIER
+
+                    self.total_dmg_reward -= punishment
             except:
                 continue
