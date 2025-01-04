@@ -17,15 +17,13 @@ from model_bot import run_game_with_model_bot
 class Sc2Env(gym.Env):
     """Custom Environment that follows gym interface"""
 
-    def __init__(self, what_to_run="model_bot.py", difficulty=Difficulty.Hard):
+    def __init__(self, difficulty=Difficulty.Hard):
         super(Sc2Env, self).__init__()
         # Define action and observation space
         # They must be gym.spaces objects
-        self.action_space = spaces.Discrete(common.ACTION_SPACE_SIZE)
+        self.action_space = spaces.MultiDiscrete(common.ACTION_SPACE_SIZE)
         self.observation_space = spaces.Dict({"map": spaces.Box(low=0, high=255, shape=common.OBSERVATION_SPACE_SHAPE_MAP, dtype=np.uint8),
                                               "info": spaces.Box(low=common.LOW_BOUND, high=common.HIGH_BOUND, shape=common.OBSERVATION_SPACE_SHAPE_INFO, dtype=np.float16)})
-        self.run_sc2 = what_to_run
-
         self.connection = None
         self.difficulty = difficulty
 

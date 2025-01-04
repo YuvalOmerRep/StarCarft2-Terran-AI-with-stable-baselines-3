@@ -37,20 +37,20 @@ class Extractor:
                   ]
 
         vector += \
-            [get_amount(i, self.bot_to_extract_from.units)
-             for i in common.terran_unit_list]  # ally_units
+            [get_amount(uid, self.bot_to_extract_from.units)
+             for uid in common.terran_unit_list]  # ally_units
 
         vector += \
-            [get_amount(i, self.bot_to_extract_from.structures)
-             for i in common.terran_structures_list]  # ally_buildings
+            [get_amount(uid, self.bot_to_extract_from.structures)
+             for uid in common.terran_structures_list]  # ally_buildings
 
         vector += \
-            [get_amount(i, self.bot_to_extract_from.enemy_units)
-             for i in common.protoss_units_list]  # enemy_units
+            [get_amount(uid, self.bot_to_extract_from.enemy_units)
+             for uid in common.protoss_units_list]  # enemy_units
 
         vector += \
-            [get_amount(i, self.bot_to_extract_from.enemy_structures)
-             for i in common.protoss_structures_list]  # enemy_buildings
+            [get_amount(uid, self.bot_to_extract_from.enemy_structures)
+             for uid in common.protoss_structures_list]  # enemy_buildings
 
         return vector
 

@@ -1,3 +1,4 @@
+import asyncio
 import random
 
 from sc2.bot_ai import BotAI
@@ -45,49 +46,45 @@ class Random_Strategy(Terran_Strategy):
         self.is_sieged = False
         self.locations_sorted = []
 
-        self.actions_list = [
-            [self.build_from_command_center, "build_from_command_center"],
+        self.build_actions = [
             [self.expand_now, "expand_now"],
             [self.build_refinery, "build_refinery"],
-            [self.build_supply_depo, "build_supply_depo"],
-            [self.build_factory, "build_factory"],
-            [self.build_barracks, "build_barracks"],
-            [self.build_engineeringbay, "build_engineeringbay"],
-            [self.build_marine, "build_marine"],
-            [self.build_marauder, "build_marauder"],
-            [self.build_tank, "build_tank"],
-            [self.build_thor, "build_thor"],
-            [self.build_reactor, "build_reactor"],
-            [self.build_techlab, "build_techlab"],
-            [self.build_armory, "build_armory"],
+            [self.create_build_structure(UId.SUPPLYDEPOT), "build_supply_depo"],
+            [self.create_build_structure(UId.FACTORY, add_on=True), "build_factory"],
+            [self.create_build_structure(UId.BARRACKS, add_on=True), "build_barracks"],
+            [self.create_build_structure(UId.ENGINEERINGBAY), "build_engineeringbay"],
+            [self.create_build_structure(UId.ARMORY), "build_armory"],
+            [self.create_build_structure(UId.STARPORT, add_on=True), "build_starport"],
+            [self.create_build_structure(UId.FUSIONCORE), "build_fusioncore"],
+            [self.create_build_addon(UId.REACTOR, UId.BARRACKS, AbilityId.BUILD_REACTOR_BARRACKS), "build_barracks_reactor"],
+            [self.create_build_addon(UId.TECHLAB, UId.BARRACKS, AbilityId.BUILD_TECHLAB_BARRACKS), "build_barracks_techlab"],
+            [self.create_build_addon(UId.FACTORYREACTOR, UId.FACTORY, AbilityId.BUILD_REACTOR_FACTORY), "build_factory_reactor"],
+            [self.create_build_addon(UId.FACTORYTECHLAB, UId.FACTORY, AbilityId.BUILD_TECHLAB_FACTORY), "build_factory_techlab"],
+            [self.create_build_addon(UId.STARPORTREACTOR, UId.STARPORT, AbilityId.BUILD_REACTOR_STARPORT), "build_starport_reactor"],
+            [self.create_build_addon(UId.STARPORTTECHLAB, UId.STARPORT, AbilityId.BUILD_TECHLAB_STARPORT), "build_starport_techlab"],
+            [self.noop, "don't build structure"],
+        ]
+
+        self.manufacture_unit_actions = [
+            [self.build_worker, "build_worker"],
+            [self.create_build_unit_from_structure(UId.BARRACKS, UId.MARINE), "build_marine"],
+            [self.create_build_unit_from_structure(UId.BARRACKS, UId.MARAUDER), "build_marauder"],
+            [self.create_build_unit_from_structure(UId.FACTORY, UId.SIEGETANK), "build_tank"],
+            [self.create_build_unit_from_structure(UId.FACTORY, UId.THOR), "build_thor"],
+            [self.create_build_unit_from_structure(UId.STARPORT, UId.MEDIVAC), "build_medivac"],
+            [self.create_build_unit_from_structure(UId.STARPORT, UId.BATTLECRUISER), "build_battle_cruiser"],
+            [self.noop, "don't build unit"],
+        ]
+
+        self.research_upgrade_actions = [
             [self.upgrade_ground_weapons, "upgrade_ground_weapons"],
             [self.upgrade_ground_armor, "upgrade_ground_armor"],
-            [self.build_starport, "build_starport"],
-            [self.build_from_starport, "build_from_starport"],
             [self.upgrade_bio, "upgrade_bio"],
             [self.upgrade_marine, "upgrade_marine"],
-            [self.stim_army, "stim_army"],
-            [self.siege_tanks, "siege_tanks"],
-            # [self.attack_enemy_main, "attack_enemy_main"],
-            [self.attack_enemy_units, "attack_enemy_units"],
-            [self.attack_enemy_structures, "attack_enemy_structures"],
-            [self.gather_units_at_1, "gather all units on main base"],
-            [self.gather_units_at_2, "gather all units on 3rd"],
-            [self.gather_units_at_3, "gather all units on 2nd"],
-            [self.gather_units_at_4, "gather all units on a base"],
-            [self.gather_units_at_5, "gather all units on a base"],
-            [self.gather_units_at_6, "gather all units on a base"],
-            [self.gather_units_at_7, "gather all units on a base"],
-            [self.gather_units_at_8, "gather all units on a base"],
-            [self.gather_units_at_9, "gather all units on a base"],
-            [self.gather_units_at_10, "gather all units on a base"],
-            [self.gather_units_at_11, "gather all units on a base"],
-            [self.gather_units_at_12, "gather all units on a base"],
-            [self.gather_units_at_13, "gather all units on a base"],
-            [self.gather_units_at_14, "gather all units on a base"],
-            # [self.gather_units_at_outpost, "gather_units_at_outpost"],
-            # [self.gather_units_in_front_of_third, "gather_units_in_front_of_third"],
-            [self.hold_position_all_army, "hold_position_all_army"],
+            [self.noop, "don't research"],
+        ]
+
+        self.command_center_abilities = [
             [self.drop_mule, "drop_mule"],
             [self.scan_army, "scan_army"],
             [self.scan_location_at_1, "scan main base"],
@@ -104,25 +101,61 @@ class Random_Strategy(Terran_Strategy):
             [self.scan_location_at_12, "scan a base location"],
             [self.scan_location_at_13, "scan a base location"],
             [self.scan_location_at_14, "scan a base location"],
+            [self.noop, "don't use ability"],
+        ]
+
+        self.army_commands = [
+            [self.stim_army, "stim_army"],
+            [self.siege_tanks, "siege_tanks"],
+            [self.attack_enemy_units, "attack_enemy_units"],
+            [self.attack_enemy_structures, "attack_enemy_structures"],
+            [self.gather_units_at_1, "gather all units on main base"],
+            [self.gather_units_at_2, "gather all units on 3rd"],
+            [self.gather_units_at_3, "gather all units on 2nd"],
+            [self.gather_units_at_4, "gather all units on a base"],
+            [self.gather_units_at_5, "gather all units on a base"],
+            [self.gather_units_at_6, "gather all units on a base"],
+            [self.gather_units_at_7, "gather all units on a base"],
+            [self.gather_units_at_8, "gather all units on a base"],
+            [self.gather_units_at_9, "gather all units on a base"],
+            [self.gather_units_at_10, "gather all units on a base"],
+            [self.gather_units_at_11, "gather all units on a base"],
+            [self.gather_units_at_12, "gather all units on a base"],
+            [self.gather_units_at_13, "gather all units on a base"],
+            [self.gather_units_at_14, "gather all units on a base"],
+            [self.hold_position_all_army, "hold_position_all_army"],
+            [self.noop, "don't give an order to the army"],
         ]
 
     async def initialize_location_list(self, locations_sorted):
         self.locations_sorted = locations_sorted
 
+
+    @staticmethod
+    async def run_command_task(actions):
+        action = random.choice(actions)
+        await action[0]
+        print(action[0])
+
+
     async def strategize(self):
         """
-        The main method of the strategy class, handles the decision making of the model.
+        The main method of the strategy class, handles the decision-making of the model.
         chooses randomly with uniform distribution among the strategies in self.actions_list
 
         :return:
         The action that was taken in this iteration and the immediate reward associated with the
         execution of that action.
         """
-        action = random.choice(self.actions_list)
+        async with asyncio.TaskGroup() as tg:
+            tg.create_task(Random_Strategy.run_command_task(self.build_actions))
+            tg.create_task(Random_Strategy.run_command_task(self.manufacture_unit_actions))
+            tg.create_task(Random_Strategy.run_command_task(self.research_upgrade_actions))
+            tg.create_task(Random_Strategy.run_command_task(self.command_center_abilities))
+            tg.create_task(Random_Strategy.run_command_task(self.army_commands))
 
-        reward = await action[0]()
-
-        return action[1], reward
+    async def noop(self):
+        return
 
     async def expand_now(self):
         if await self.agent.get_next_expansion():
@@ -177,7 +210,7 @@ class Random_Strategy(Terran_Strategy):
         else:
             return await self.get_position_towards_enemy_from_place(self.agent.start_location.position)
 
-    async def build(self, building_uid, add_on=False):
+    def create_build_structure(self, building_uid, add_on=False):
         """
         A method that replaces the Bot_AI.build method, this method is a bit more efficient,
         helps reduce clatter at first base and if add_on is true will make sure the building
@@ -187,31 +220,39 @@ class Random_Strategy(Terran_Strategy):
         :param building_uid: the type of building we try to build
         :param add_on: does the building specified by building_uid needs space for an add_on
         """
-        for i in range(GB.NUM_OF_RETRIES):
-            if building_uid == UId.SUPPLYDEPOT:
-                pos = await self.get_position_for_depot()
-                if not await self.check_building_position_radius(pos, GB.DEPO_RADIUS):
-                    continue
-            else:
-                if add_on:
-                    addon_size = GB.DEPO_RADIUS
+        async def inner():
+            if not self.agent.can_afford(building_uid):
+                return GB.INVALID_COMMAND_REWARD
+
+            for i in range(GB.NUM_OF_RETRIES):
+                if building_uid == UId.SUPPLYDEPOT:
+                    pos = await self.get_position_for_depot()
+                    if not await self.check_building_position_radius(pos, GB.DEPO_RADIUS):
+                        continue
                 else:
-                    addon_size = 0
-                pos = await self.get_position_for_building()
-                if not await self.check_building_position_radius(pos, GB.BUILDING_RADIUS + addon_size):
+                    if add_on:
+                        addon_size = GB.DEPO_RADIUS
+                    else:
+                        addon_size = 0
+                    pos = await self.get_position_for_building()
+                    if not await self.check_building_position_radius(pos, GB.BUILDING_RADIUS + addon_size):
+                        continue
+
+                if not await self.agent.can_place_single(building_uid, pos):
                     continue
 
-            if not await self.agent.can_place_single(building_uid, pos):
-                continue
+                if add_on:
+                    if not await self.agent.can_place_single(UId.SUPPLYDEPOT, pos.offset((2.5, -0.5))):
+                        continue
 
-            if add_on:
-                if not await self.agent.can_place_single(UId.SUPPLYDEPOT, pos.offset((2.5, -0.5))):
-                    continue
+                builder = self.agent.select_build_worker(pos)
 
-            builder = self.agent.select_build_worker(pos)
+                if builder is not None:
+                    self.agent.do(builder.build(building_uid, pos))
 
-            if builder is not None:
-                self.agent.do(builder.build(building_uid, pos))
+            return GB.VALID_COMMAND_REWARD
+
+        return inner
 
     async def check_building_position_radius(self, position, radius):
         if self.agent.structures.closer_than(radius + GB.STRUCTURES_SAFE_RADIUS, position).exists:
@@ -226,52 +267,12 @@ class Random_Strategy(Terran_Strategy):
         :return: Reward of action depending on it's success
         """
         if self.agent.can_afford(UId.SUPPLYDEPOT):
-            await self.build(UId.SUPPLYDEPOT)
+            await self.create_build_structure(UId.SUPPLYDEPOT)
 
             return GB.VALID_COMMAND_REWARD
 
         return GB.INVALID_COMMAND_REWARD
 
-    async def build_factory(self):
-        """
-        A method that builds a factory depo at a random location if we can afford
-        building one.
-
-        :return: Reward of action depending on it's success
-        """
-        if self.agent.can_afford(UId.FACTORY):
-            await self.build(UId.FACTORY, add_on=True)
-
-            return GB.VALID_COMMAND_REWARD
-
-        return GB.INVALID_COMMAND_REWARD
-
-    async def build_starport(self):
-        """
-        A method that builds a starport at a random location if we can afford
-        building one.
-
-        :return: Reward of action depending on it's success
-        """
-        if self.agent.can_afford(UId.STARPORT):
-            await self.build(UId.STARPORT, add_on=True)
-            return GB.VALID_COMMAND_REWARD
-
-        return GB.INVALID_COMMAND_REWARD
-
-    async def build_barracks(self):
-        """
-        A method that builds a barracks at a random location if we can afford
-        building one.
-
-        :return: Reward of action depending on it's success
-        """
-        if self.agent.can_afford(UId.BARRACKS):
-            await self.build(UId.BARRACKS, add_on=True)
-
-            return GB.VALID_COMMAND_REWARD
-
-        return GB.INVALID_COMMAND_REWARD
 
     async def build_refinery(self):
         """
@@ -290,38 +291,11 @@ class Random_Strategy(Terran_Strategy):
 
         return GB.INVALID_COMMAND_REWARD
 
-    async def build_engineeringbay(self):
-        """
-        A method that builds an Engineering Bay at a random location if we can afford
-        building one.
 
-        :return: Reward of action depending on it's success
-        """
-        if self.agent.can_afford(UId.ENGINEERINGBAY):
-            await self.build(UId.ENGINEERINGBAY)
-
-            return GB.VALID_COMMAND_REWARD
-
-        return GB.INVALID_COMMAND_REWARD
-
-    async def build_armory(self):
-        """
-        A method that builds an armory at a random location if we can afford
-        building one.
-
-        :return: Reward of action depending on it's success
-        """
-        if self.agent.can_afford(UId.ARMORY) and not self.agent.already_pending(UId.ARMORY):
-            await self.build(UId.ARMORY)
-
-            return GB.VALID_COMMAND_REWARD
-
-        return GB.INVALID_COMMAND_REWARD
-
-    async def build_from_command_center(self):
+    async def build_worker(self):
         """
         A method that transforms an idle CommandCenter into an Orbital Command if it can afford to do so,
-        or if said CommandCenter is already an orbital command then this method will build a SCV if
+        or if said CommandCenter is already an orbital command then this method will build an SCV if
         it can afford to do so.
 
         :return: Reward of action depending on it's success
@@ -395,185 +369,58 @@ class Random_Strategy(Terran_Strategy):
 
         return GB.INVALID_COMMAND_REWARD
 
-    async def build_marine(self):
-        """
-        A method that builds a marine, this method will build that marine from a random barrack with the following
-        priorities:
-        1) an idle barracks with a reactor
-        2) a non idle barracks with a reactor
-        3) a random ready barracks
 
-        :return: Reward of action depending on it's success
-        """
-        structure_ready = self.agent.structures(UId.BARRACKS).ready
+    def create_build_unit_from_structure(self, uid_building, uid_unit):
+        async def inner():
+            if not self.agent.can_afford(uid_unit):
+                return GB.INVALID_COMMAND_REWARD
 
-        if self.agent.can_afford(UId.MARINE) and structure_ready:
-            structure_idle = structure_ready.idle
-
-            if structure_idle:
-                if await find_from_group_with_reactor(structure_idle, UId.MARINE):
+            ready_structures = self.agent.structures(uid_building).ready
+            if ready_structures:
+                idle_structures = ready_structures.idle
+                if idle_structures:
+                    structure = idle_structures.random
+                    structure.train(uid_unit, queue=True)
                     return GB.VALID_COMMAND_REWARD
 
-            if await find_from_group_with_reactor(structure_ready, UId.MARINE):
-                return GB.VALID_COMMAND_REWARD
+            return GB.INVALID_COMMAND_REWARD
 
-            if structure_idle:
-                structure_idle.random.train(UId.MARINE, queue=True)
-            else:
-                structure_ready.random.train(UId.MARINE, queue=True)
+        return inner
 
-            return GB.VALID_COMMAND_REWARD
 
-        return GB.INVALID_COMMAND_REWARD
-
-    async def build_marauder(self):
-        """
-        A method that builds a marauder from a random idle barracks with a techlab
-
-        :return: Reward of action depending on it's success
-        """
-        barracks_ready = self.agent.structures(UId.BARRACKS).ready
-        if barracks_ready:
-            barracks_idle = barracks_ready.idle
-
-            if barracks_idle:
-                for barrack in barracks_idle:
-                    if barrack.has_techlab:
-                        if self.agent.can_afford(UId.MARAUDER):
-                            barrack.train(UId.MARAUDER, queue=True)
-                            return GB.VALID_COMMAND_REWARD
-
-        return GB.INVALID_COMMAND_REWARD
-
-    async def build_reactor(self):
-        """
-        A method that builds a reactor on a random idle barracks that doesn't have
-        and addon
-
-        :return: Reward of action depending on it's success
-        """
-        if await self.build_addon(UId.REACTOR, AbilityId.BUILD_REACTOR_BARRACKS):
-            return GB.VALID_COMMAND_REWARD
-
-        return GB.INVALID_COMMAND_REWARD
-
-    async def build_techlab(self):
-        """
-        A method that builds a techlab on a random idle barracks that doesn't have
-        and addon
-
-        :return: Reward of action depending on it's success
-        """
-        if await self.build_addon(UId.TECHLAB, AbilityId.BUILD_TECHLAB_BARRACKS):
-            return GB.VALID_COMMAND_REWARD
-
-        return GB.INVALID_COMMAND_REWARD
-
-    async def build_from_factory(self, uid):
-        """
-        A method that builds a techlab or a tank from a random idle factory
-
-        :param uid: the unit type to build for the factory
-        :return: Reward of action depending on it's success
-        """
-        return await self.build_from_factory_or_starport(UId.FACTORY, uid, UId.FACTORYTECHLAB,
-                                                         AbilityId.BUILD_TECHLAB_FACTORY)
-
-    async def build_from_starport(self):
-        """
-        A method that builds a reactor or a medivac from a random idle starport
-
-        :return: Reward of action depending on it's success
-        """
-        return await self.build_from_factory_or_starport(UId.STARPORT, UId.MEDIVAC,
-                                                         UId.STARPORTREACTOR, AbilityId.BUILD_REACTOR_STARPORT)
-
-    async def build_from_factory_or_starport(self, uid_building, uid_unit, uid_add_on, ability):
-        """
-        a method that handles building from factories and starport
-
-        :param uid_building: the uid of a structure type we want to build from
-        :param uid_unit: the uid of a unit type we want to build
-        :param uid_add_on: the uid of the addon we want on the structure type
-        :param ability: the ability used to build the addon
-        :return: Reward of action depending on it's success
-        """
-        ready_structures = self.agent.structures(uid_building).ready
-        idle_structures = ready_structures.idle
-        if ready_structures:
-            if idle_structures:
-                structure = idle_structures.random
-                if structure.has_add_on:
-                    if self.agent.can_afford(uid_unit):
-                        structure.train(uid_unit, queue=True)
-                        return GB.VALID_COMMAND_REWARD
-
-                elif self.agent.can_afford(uid_add_on):
-                    can_place = await (self.agent.can_place_single(UId.SUPPLYDEPOT,
-                                                                   structure.add_on_position))
-
-                    if can_place:
-                        self.agent.do(structure(ability))
-                        return GB.VALID_COMMAND_REWARD
-
-            for building in ready_structures:
-                if building.has_add_on:
-                    if self.agent.can_afford(uid_unit):
-                        building.train(uid_unit, queue=True)
-                        return GB.VALID_COMMAND_REWARD
-
-                elif self.agent.can_afford(uid_add_on):
-                    can_place = await (self.agent.can_place_single(UId.SUPPLYDEPOT,
-                                                                   building.add_on_position))
-
-                    if can_place:
-                        self.agent.do(building(ability))
-                        return GB.VALID_COMMAND_REWARD
-
-        return GB.INVALID_COMMAND_REWARD
-
-    async def build_thor(self):
-        """
-        A method that builds a thor or a techlab on a random factory
-
-        :return: Reward of action depending on it's success
-        """
-        return await self.build_from_factory(UId.THOR)
-
-    async def build_tank(self):
-        """
-        A method that builds a tank or a techlab on a random factory
-
-        :return: Reward of action depending on it's success
-        """
-        return await self.build_from_factory(UId.SIEGETANK)
-
-    async def build_addon(self, uid, ability):
+    def create_build_addon(self, addon_uid: UId, structure_uid: UId, create_addon_ability: AbilityId):
         """
         A method that handles building addons on barracks
 
-        :param uid: the uid of the addon we want to build
-        :param ability: the Abilityid of the ability used to build the addon specified of uid
+        :param addon_uid: the uid of the addon we want to build
+        :param structure_uid the uid of the structure on which we want to build an addon
+        :param create_addon_ability: the Abilityid of the ability used to build the addon specified of uid
         :return: Reward of action depending on it's success
         """
-        barracks_ready = self.agent.structures(UId.BARRACKS).ready
-        if self.agent.can_afford(uid) and barracks_ready:
-            barracks_idle = barracks_ready.idle
-            if barracks_idle:
-                barrack = None
-                for barrack_idle in barracks_idle:
-                    if not barrack_idle.has_add_on:
-                        barrack = barrack_idle
-                        break
+        async def inner():
+            if not self.agent.can_afford(addon_uid):
+                return GB.INVALID_COMMAND_REWARD
 
-                if barrack is not None:
-                    can_place = await (self.agent.can_place_single(UId.SUPPLYDEPOT, barrack.add_on_position))
+            ready_uid_structures = self.agent.structures(structure_uid).ready
+            if ready_uid_structures:
+                idle_uid_structures = ready_uid_structures.idle
+                if idle_uid_structures:
+                    structure_without_addon = None
+                    for structure in idle_uid_structures:
+                        if not structure.has_add_on:
+                            structure_without_addon = structure
+                            break
 
-                    if can_place:
-                        self.agent.do(barrack(ability))
-                        return 1
+                    if structure_without_addon is not None:
+                        can_place = await (self.agent.can_place_single(UId.SUPPLYDEPOT, structure_without_addon.add_on_position))
 
-        return 0
+                        if can_place:
+                            self.agent.do(structure_without_addon(create_addon_ability))
+                            return GB.VALID_COMMAND_REWARD
+
+            return GB.INVALID_COMMAND_REWARD
+
+        return inner
 
     async def upgrade_ground_weapons(self):
         """
@@ -740,25 +587,6 @@ class Random_Strategy(Terran_Strategy):
 
         await self.follow_other_unit(UId.MEDIVAC)
 
-    async def attack_enemy_main(self):
-        """
-        Handles using all units to attack enemy main base, notice that medivacs are ordered to follow
-        other units to avoid them going in front of the army.
-
-        :return: Reward of action depending on it's success
-        """
-        await self.attack_enemy_main_one_type(UId.MARINE)
-
-        await self.attack_enemy_main_one_type(UId.MARAUDER)
-
-        await self.attack_enemy_main_one_type(UId.SIEGETANK)
-
-        await self.attack_enemy_main_one_type(UId.THOR)
-
-        await self.follow_other_unit(UId.MEDIVAC)
-
-        return GB.VALID_COMMAND_REWARD
-
     async def attack_enemy_main_one_type(self, uid):
         """
         A method that attacks the main of the enemy with one unit type (meant for internal use)
@@ -768,28 +596,6 @@ class Random_Strategy(Terran_Strategy):
         for army_unit in self.agent.units(uid):
             army_unit.attack(self.agent.enemy_start_locations[0])
 
-    async def gather_units_at_outpost(self):
-        """
-        A method that sends ally army to the closest ally base to enemy main base
-
-        :return: Reward of action depending on it's success
-        """
-        if self.agent.townhalls:
-            await self.gather_units_at(self.agent.townhalls.closest_to(self.agent.enemy_start_locations[0]))
-
-        return GB.VALID_COMMAND_REWARD
-
-    async def gather_units_in_front_of_third(self):
-        """
-        A method that sends ally army to a position between second and third base
-
-        :return: Reward of action depending on it's success
-        """
-        await self.gather_units_at(
-            self.agent.main_base_ramp.bottom_center.towards(self.agent.enemy_start_locations[0],
-                                                            GB.DISTANCE_FROM_RAMP_RALLY_POINT))
-
-        return GB.VALID_COMMAND_REWARD
 
     async def gather_units_at(self, location):
         """
