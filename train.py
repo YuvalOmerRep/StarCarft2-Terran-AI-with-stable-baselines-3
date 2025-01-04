@@ -1,6 +1,5 @@
 from sc2.data import Difficulty
 from stable_baselines3 import PPO
-from stable_baselines3.common.vec_env import SubprocVecEnv
 import os
 from env import Sc2Env
 import time
@@ -17,14 +16,15 @@ def _train(model: PPO, models_dir: str, was_at_iteration: int):
         model.save(f"{models_dir}/{iters + was_at_iteration}")
 
 
-def train_new_model(model_name: str, difficulties: list[Difficulty]):
+def train_new_model(model_name: str, difficulty=Difficulty.Hard):
     """
     A function that trains a new model using the sc2 environment
 
     :param model_name: The name of the new model, model will be saved in models/[model_name]
-    :param difficulties: the difficulty of the bot the model trains against
+    :param difficulty: the difficulty of the bot the model trains against
     """
     model_name = f"{model_name}_{int(time.time())}"
+    env = Sc2Env(difficulty=difficulty)
     models_dir = f"models/{model_name}/"
     logdir = f"logs/{model_name}/"
 
@@ -34,32 +34,22 @@ def train_new_model(model_name: str, difficulties: list[Difficulty]):
     if not os.path.exists(logdir):
         os.makedirs(logdir)
 
-    # init environments
-    envs = []
-    for difficulty in difficulties:
-        envs.append(lambda: Sc2Env(difficulty=difficulty))
-
-    model = PPO('MultiInputPolicy', SubprocVecEnv(envs), verbose=1, tensorboard_log=logdir, device=torch.device('cuda'))
+    model = PPO('MultiInputPolicy', env, verbose=1, tensorboard_log=logdir, device=torch.device('cuda'))
 
     _train(model, models_dir, was_at_iteration=0)
 
-def load_and_train(model_name: str, from_num_steps: str, difficulties: list[Difficulty]):
+def load_and_train(model_name: str, from_num_steps: str, difficulty=Difficulty.Hard):
     """
     A function that loads a model and continues to train it on the sc2 environment
 
     :param model_name: The model to be loaded
     :param from_num_steps: the number of steps from which to continue training
-    :param difficulties: the difficulty of the bot the model trains against
+    :param difficulty: the difficulty of the bot the model trains against
     """
     load_model = f"models/{model_name}/{from_num_steps}.zip"
 
-    # init environments
-    envs = []
-    for difficulty in difficulties:
-        envs.append(lambda: Sc2Env(difficulty=difficulty))
-
     # load the model:
-    model = PPO.load(load_model, env=SubprocVecEnv(envs))
+    model = PPO.load(load_model, env=Sc2Env(difficulty=difficulty))
 
     models_dir = f"models/{model_name}/"
 

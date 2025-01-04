@@ -28,10 +28,10 @@ class ReinforcementBot(BotAI):  # inherits from BotAI (part of BurnySC2)
         self.strategy = Terran_Strategy.Random_Strategy(self)
         self.features_extractor = feature_extractor_with_map(self)
         self.reward_system = reward_system(self)
-        self.units_dict_tags: dict[int, tuple[bool, UId, bool, bool]] = dict()
-        self.my_units_died_since_last_action: list[tuple[UId, bool]] = []
-        self.enemy_units_died_since_last_action: list[UId] = []
-        self.units_created_this_frame: list[UId] = []
+        self.units_dict_tags = dict()
+        self.my_units_died_since_last_action = []
+        self.enemy_units_died_since_last_action = []
+        self.units_created_this_frame = []
         self.took_damage = False
 
         self.conn = con
@@ -60,11 +60,11 @@ class ReinforcementBot(BotAI):  # inherits from BotAI (part of BurnySC2)
 
         self.took_damage = False
 
-        reward = self.reward_system.calculate_reward(self.enemy_units_died_since_last_action, self.my_units_died_since_last_action, iteration)
+        reward = self.reward_system.calculate_reward(self.enemy_units_died_since_last_action, iteration)
 
-        self.my_units_died_since_last_action.clear()
-        self.enemy_units_died_since_last_action.clear()
-        self.units_created_this_frame.clear()
+        self.my_units_died_since_last_action = []
+        self.enemy_units_died_since_last_action = []
+        self.units_created_this_frame = []
 
         state_reward_msg = Message(state=state, reward=reward)
 
@@ -85,10 +85,10 @@ class ReinforcementBot(BotAI):  # inherits from BotAI (part of BurnySC2)
 
     async def _initialize_one_group_tag_dict(self, group, is_neutral=False):
         for unit in group:
-            self.units_dict_tags[unit.tag] = (unit.is_mine, unit.type_id, is_neutral, unit.is_structure)
+            self.units_dict_tags[unit.tag] = [unit.is_mine, unit.type_id, is_neutral]
 
     async def on_building_construction_started(self, unit: Unit):
-        self.units_dict_tags[unit.tag] = (unit.is_mine, unit.type_id, False, unit.is_structure)
+        self.units_dict_tags[unit.tag] = [unit.is_mine, unit.type_id, False]
         return await super().on_building_construction_started(unit)
 
     async def on_building_construction_complete(self, unit: Unit):
@@ -99,7 +99,7 @@ class ReinforcementBot(BotAI):  # inherits from BotAI (part of BurnySC2)
 
     async def on_unit_created(self, unit: Unit):
 
-        self.units_dict_tags[unit.tag] = (unit.is_mine, unit.type_id, False, unit.is_structure)
+        self.units_dict_tags[unit.tag] = [unit.is_mine, unit.type_id, False]
         if unit.type_id != UId.MULE:
             self.units_created_this_frame.append(unit.type_id)
         return await super().on_unit_created(unit)
@@ -109,7 +109,7 @@ class ReinforcementBot(BotAI):  # inherits from BotAI (part of BurnySC2)
             dict_entry = self.units_dict_tags[unit_tag]
             if not dict_entry[2]:
                 if dict_entry[0]:
-                    self.my_units_died_since_last_action.append((dict_entry[1], dict_entry[3]))
+                    self.my_units_died_since_last_action.append(dict_entry[1])
                 else:
                     self.enemy_units_died_since_last_action.append(dict_entry[1])
         except KeyError:
@@ -118,7 +118,7 @@ class ReinforcementBot(BotAI):  # inherits from BotAI (part of BurnySC2)
         return await super().on_unit_destroyed(unit_tag)
 
     async def on_enemy_unit_entered_vision(self, unit: Unit):
-        self.units_dict_tags[unit.tag] = (unit.is_mine, unit.type_id, False, unit.is_structure)
+        self.units_dict_tags[unit.tag] = [unit.is_mine, unit.type_id, False]
         return await super().on_enemy_unit_entered_vision(unit)
 
     async def on_unit_took_damage(self, unit: Unit, amount_damage_taken: float):
@@ -135,17 +135,13 @@ def run_game_with_model_bot(conn, difficulty: Difficulty):
 
     if result == Result.Victory:
         print("\033[92mWinner Winner chicken dinner!\033[0m")
-        reward = 10000
+        rwd = 1000 * common.step_punishment[last_iteration]
     elif result == Result.Tie:
         print("\033[92mTie that Tie!\033[0m")
-        reward = 0
+        rwd = 0
     else:
         print("\033[92mLost Once again\033[0m")
-        reward = -1000
+        rwd = -500
 
-
-    reward_after_time_punishment =  reward * common.step_punishment[last_iteration]
-    print(f"at end of match when iteration: {last_iteration}, reward per time punishment: {reward}, time punishment: {common.step_punishment[last_iteration]} at final reward: {reward_after_time_punishment}")
-
-    game_done_message = Message(state=Utils.create_state(), reward=reward_after_time_punishment, done=True)
+    game_done_message = Message(state=Utils.create_state(), reward=rwd, done=True)
     conn.send(game_done_message)
