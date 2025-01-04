@@ -7,6 +7,7 @@ from train import train_new_model, load_and_train
 COMMAND_TO_DIFFICULTY = {"veryHard": Difficulty.VeryHard,
                          "harder": Difficulty.Harder,
                          "hard": Difficulty.Hard,
+                         "mediumHard": Difficulty.MediumHard,
                          "medium": Difficulty.Medium,
                          "easy": Difficulty.Easy}
 
