@@ -14,14 +14,28 @@ class Message:
         self.done = done
 
 
+class MultipleDiscreteMemory:
+    def __init__(self, action_spaces:list[int] = common.ACTION_SPACE_SIZE, short_term_memory_duration:int=common.MEMORY_SIZE):
+        self.memories = []
+        for action_space in action_spaces:
+            self.memories.append(Memory(action_space, short_term_memory_duration))
+
+    def register_action(self, actions:list[int], iteration: int):
+        for i, action in enumerate(actions):
+            self.memories[i].register_action(action, iteration)
+
+    def get_memory(self):
+        return sum(self.memories, [])
+
+
 class Memory:
-    def __init__(self, action_space_size:int = common.ACTION_SPACE_SIZE, short_term_memory_duration:int=common.MEMORY_SIZE):
+    def __init__(self, action_space_size:int, short_term_memory_duration:int=common.MEMORY_SIZE):
         self.memory = np.append(np.zeros(action_space_size), np.full(action_space_size, fill_value=-100))
         self.actions_queue = Queue(maxsize=short_term_memory_duration)
         self.action_space_size = action_space_size
 
 
-    def register_action(self, action:int, iteration):
+    def register_action(self, action:int, iteration: int):
         self.memory[action + self.action_space_size] = iteration
         if self.actions_queue.full():
             forgotten_action = self.actions_queue.get_nowait()
@@ -30,7 +44,11 @@ class Memory:
         self.memory[action] += 1
 
     def get_memory(self):
-        return self.memory
+        res = []
+        for memory in self.memory:
+            res += memory.get_memory()
+        return res
+
 
 def create_state(game_map=None, game_info=None):
     if game_map is None:

@@ -19,7 +19,7 @@ class Extractor:
     def __init__(self, bot: BotAI):
         self.bot_to_extract_from = bot
 
-    def generate_vectors(self, action: int, iteration: int) -> np.array:
+    def generate_vectors(self, action: list[int], iteration: int) -> np.array:
         is_stimmed = self.get_is_stimmed()
         has_energy = self.command_center_has_energy_for_ability()
 
@@ -140,7 +140,7 @@ class feature_extractor_with_map(Extractor):
                 return 1
         return 0
 
-    def generate_vectors(self, action: int, iteration: int) -> np.array:
+    def generate_vectors(self, action: list[int], iteration: int) -> np.array:
         vector = super().generate_vectors(action, iteration)
         self.action_memory.register_action(action=action, iteration=iteration)
         memory = self.action_memory.get_memory()

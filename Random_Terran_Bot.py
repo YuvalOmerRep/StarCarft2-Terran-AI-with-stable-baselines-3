@@ -26,7 +26,7 @@ class RandomTerranBot(BotAI):
         elif iteration > GB.START_ITERATION:
             await self.strategy.strategize()
 
-            vec, game_map = self.features_extractor.generate_vectors(iteration, iteration)
+            vec, game_map = self.features_extractor.generate_vectors([iteration, iteration, iteration, iteration, iteration], iteration)
 
             print(np.max(game_map))
             print(np.min(game_map))
