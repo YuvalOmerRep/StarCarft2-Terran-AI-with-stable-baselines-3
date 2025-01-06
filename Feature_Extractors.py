@@ -4,8 +4,7 @@ from sc2.ids.unit_typeid import UnitTypeId as UId
 from sc2.ids.buff_id import BuffId as BId
 from sc2.ids.upgrade_id import UpgradeId as UpId
 import common
-import math
-from Utils import Memory, get_x_y_of_pos
+from Utils import MultipleDiscreteMemory, get_x_y_of_pos
 
 
 def get_amount(uid: UId, group) -> int:
@@ -81,8 +80,8 @@ class basic_feature_extractor(Extractor):
     async def initialize_location_list(self, locations_sorted):
         self.locations_sorted = locations_sorted
 
-    def generate_vectors(self, action: int, iteration: int) -> np.array:
-        vector = super().generate_vectors(action, iteration)
+    def generate_vectors(self, actions: list[int], iteration: int) -> np.array:
+        vector = super().generate_vectors(actions, iteration)
 
         vector += self.get_amounts_from_group_relative_to_expansions()  # "radar" system
         # for getting locations of ally and enemy units and structures
@@ -117,7 +116,7 @@ class feature_extractor_with_map(Extractor):
 
     def __init__(self, bot: BotAI):
         super().__init__(bot)
-        self.action_memory = Memory()
+        self.action_memory = MultipleDiscreteMemory()
         self.locations_sorted = []
 
     async def initialize_location_list(self, locations_sorted):
@@ -140,9 +139,9 @@ class feature_extractor_with_map(Extractor):
                 return 1
         return 0
 
-    def generate_vectors(self, action: list[int], iteration: int) -> np.array:
-        vector = super().generate_vectors(action, iteration)
-        self.action_memory.register_action(action=action, iteration=iteration)
+    def generate_vectors(self, actions: list[int], iteration: int) -> np.array:
+        vector = super().generate_vectors(actions, iteration)
+        self.action_memory.register_action(actions=actions, iteration=iteration)
         memory = self.action_memory.get_memory()
         game_map = self.generate_map()
         return np.append(memory, vector), game_map

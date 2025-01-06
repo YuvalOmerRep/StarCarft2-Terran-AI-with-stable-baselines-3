@@ -12,7 +12,7 @@ class Terran_Strategy:
     def __init__(self, agent: BotAI):
         self.agent = agent
 
-    async def strategize(self):
+    async def strategize(self, actions: list[int]):
         raise NotImplementedError
 
     async def initialize_location_list(self, locations_sorted):
@@ -87,20 +87,20 @@ class Random_Strategy(Terran_Strategy):
         self.command_center_abilities = [
             [self.drop_mule, "drop_mule"],
             [self.scan_army, "scan_army"],
-            [self.scan_location_at_1, "scan main base"],
-            [self.scan_location_at_2, "scan 2nd"],
-            [self.scan_location_at_3, "scan 3rd"],
-            [self.scan_location_at_4, "scan a base location"],
-            [self.scan_location_at_5, "scan a base location"],
-            [self.scan_location_at_6, "scan a base location"],
-            [self.scan_location_at_7, "scan a base location"],
-            [self.scan_location_at_8, "scan a base location"],
-            [self.scan_location_at_9, "scan a base location"],
-            [self.scan_location_at_10, "scan a base location"],
-            [self.scan_location_at_11, "scan a base location"],
-            [self.scan_location_at_12, "scan a base location"],
-            [self.scan_location_at_13, "scan a base location"],
-            [self.scan_location_at_14, "scan a base location"],
+            [self.scan_location_at_1, "scan_main_base"],
+            [self.scan_location_at_2, "scan_2nd"],
+            [self.scan_location_at_3, "scan_3rd"],
+            [self.scan_location_at_4, "scan_4th"],
+            [self.scan_location_at_5, "scan_5th"],
+            [self.scan_location_at_6, "scan_6th"],
+            [self.scan_location_at_7, "scan_7th"],
+            [self.scan_location_at_8, "scan_8th"],
+            [self.scan_location_at_9, "scan_9th"],
+            [self.scan_location_at_10, "scan_10th"],
+            [self.scan_location_at_11, "scan_11th"],
+            [self.scan_location_at_12, "scan_12th"],
+            [self.scan_location_at_13, "scan_13th"],
+            [self.scan_location_at_14, "scan_14th"],
             [self.noop, "don't use ability"],
         ]
 
@@ -130,15 +130,7 @@ class Random_Strategy(Terran_Strategy):
     async def initialize_location_list(self, locations_sorted):
         self.locations_sorted = locations_sorted
 
-
-    @staticmethod
-    async def run_command_task(actions):
-        action = random.choice(actions)
-        await action[0]
-        print(action[0])
-
-
-    async def strategize(self):
+    async def random_strategize(self):
         """
         The main method of the strategy class, handles the decision-making of the model.
         chooses randomly with uniform distribution among the strategies in self.actions_list
@@ -147,12 +139,27 @@ class Random_Strategy(Terran_Strategy):
         The action that was taken in this iteration and the immediate reward associated with the
         execution of that action.
         """
+        build_action = random.randint(0, len(self.build_actions) - 1)
+        manufacture_unit_action = random.randint(0, len(self.manufacture_unit_actions) - 1)
+        research_upgrade_action = random.randint(0, len(self.research_upgrade_actions) - 1)
+        command_center_ability = random.randint(0, len(self.command_center_abilities) - 1)
+        army_command = random.randint(0, len(self.army_commands) - 1)
+        await self.strategize([build_action, manufacture_unit_action, research_upgrade_action, command_center_ability, army_command])
+
+    @staticmethod
+    async def execute_command(command):
+        await command()
+
+    async def strategize(self, actions: list[int]):
+        """
+        The main method of the strategy class, handles the action execution as dictated by the model.
+        """
         async with asyncio.TaskGroup() as tg:
-            tg.create_task(Random_Strategy.run_command_task(self.build_actions))
-            tg.create_task(Random_Strategy.run_command_task(self.manufacture_unit_actions))
-            tg.create_task(Random_Strategy.run_command_task(self.research_upgrade_actions))
-            tg.create_task(Random_Strategy.run_command_task(self.command_center_abilities))
-            tg.create_task(Random_Strategy.run_command_task(self.army_commands))
+            tg.create_task(self.build_actions[actions[0]][0]())
+            tg.create_task(self.manufacture_unit_actions[actions[1]][0]())
+            tg.create_task(self.research_upgrade_actions[actions[2]][0]())
+            tg.create_task(self.command_center_abilities[actions[3]][0]())
+            tg.create_task(self.army_commands[actions[4]][0]())
 
     async def noop(self):
         return

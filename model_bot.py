@@ -49,11 +49,11 @@ class ReinforcementBot(BotAI):  # inherits from BotAI (part of BurnySC2)
         action_msg = self.conn.recv()
         action = action_msg.action
 
-        await self.distribute_workers()  # put idle workers back to work
+        if not iteration % 100:
+            await self.distribute_workers()  # put idle workers back to work
 
-        chosen_action_lst = self.strategy.actions_list[action]
         if iteration > common.START_ITERATION:
-            await chosen_action_lst[0]()
+            await self.strategy.strategize(action)
 
         feature_state, game_map = self.features_extractor.generate_vectors(action, iteration)
         state = Utils.create_state(game_map=game_map, game_info=feature_state)

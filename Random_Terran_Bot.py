@@ -24,9 +24,9 @@ class RandomTerranBot(BotAI):
             await self.strategy.initialize_location_list(all_expansions_locations_sorted)
 
         elif iteration > GB.START_ITERATION:
-            await self.strategy.strategize()
+            await self.strategy.random_strategize()
 
-            vec, game_map = self.features_extractor.generate_vectors([iteration, iteration, iteration, iteration, iteration], iteration)
+            vec, game_map = self.features_extractor.generate_vectors([0] * 5, iteration)
 
             print(np.max(game_map))
             print(np.min(game_map))

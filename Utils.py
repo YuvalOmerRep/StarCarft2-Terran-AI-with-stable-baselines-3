@@ -25,7 +25,10 @@ class MultipleDiscreteMemory:
             self.memories[i].register_action(action, iteration)
 
     def get_memory(self):
-        return sum(self.memories, [])
+        res = np.array([])
+        for memory in self.memories:
+            res = np.concatenate((res, memory.get_memory()))
+        return res
 
 
 class Memory:
@@ -44,10 +47,7 @@ class Memory:
         self.memory[action] += 1
 
     def get_memory(self):
-        res = []
-        for memory in self.memory:
-            res += memory.get_memory()
-        return res
+        return self.memory
 
 
 def create_state(game_map=None, game_info=None):
