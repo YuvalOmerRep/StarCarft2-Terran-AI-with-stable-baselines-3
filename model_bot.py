@@ -52,15 +52,16 @@ class ReinforcementBot(BotAI):  # inherits from BotAI (part of BurnySC2)
         if not iteration % 100:
             await self.distribute_workers()  # put idle workers back to work
 
+        reward_from_action = 0
         if iteration > common.START_ITERATION:
-            await self.strategy.strategize(action)
+            reward_from_action += await self.strategy.strategize(action)
 
         feature_state, game_map = self.features_extractor.generate_vectors(action, iteration)
         state = Utils.create_state(game_map=game_map, game_info=feature_state)
 
         self.took_damage = False
 
-        reward = self.reward_system.calculate_reward(self.enemy_units_died_since_last_action, self.my_units_died_since_last_action, iteration)
+        reward = self.reward_system.calculate_reward(self.enemy_units_died_since_last_action, self.my_units_died_since_last_action, iteration, reward_from_action)
 
         self.my_units_died_since_last_action.clear()
         self.enemy_units_died_since_last_action.clear()

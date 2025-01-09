@@ -6,7 +6,7 @@ class Rewards:
     def __init__(self, agent: BotAI):
         self.agent = agent
 
-    def calculate_reward(self, enemy_dead: list[UId], ally_dead: list[tuple[UId, bool]], iteration: int) -> float:
+    def calculate_reward(self, enemy_dead: list[UId], ally_dead: list[tuple[UId, bool]], iteration: int, reward_from_action: float) -> float:
         raise NotImplementedError
 
     def get_total_dmg_reward(self):
@@ -17,17 +17,17 @@ class RewardDamageAndUnitWithStepPunishment(Rewards):
 
     def __init__(self, agent: BotAI):
         super().__init__(agent)
-        self.total_dmg_reward = 0
+        self.accumulative_reward = 0
 
     def get_total_dmg_reward(self):
-        return self.total_dmg_reward
+        return self.accumulative_reward
 
-    def calculate_reward(self, enemy_dead: list[UId], ally_dead: list[tuple[UId, bool]], iteration: int) -> float:
-        reward = 0
+    def calculate_reward(self, enemy_dead: list[UId], ally_dead: list[tuple[UId, bool]], iteration: int, reward_from_action: float) -> float:
+        self.accumulative_reward += reward_from_action
+        reward = self.accumulative_reward
         self._give_reward_for_killing(enemy_dead)
         self._give_punishment_for_dying(ally_dead)
         reward += self._give_reward_for_units()
-        reward += self.total_dmg_reward
         reward_after_time_punishment = reward * common.step_punishment[iteration]
         if not iteration % 1000:
             print(f"at iteration: {iteration}, reward per time punishment: {reward}, time punishment: {common.step_punishment[iteration]} at final reward: {reward_after_time_punishment}")
@@ -67,7 +67,7 @@ class RewardDamageAndUnitWithStepPunishment(Rewards):
                 reward = \
                     (dead_unit_cost.minerals + dead_unit_cost.vespene) * common.ENEMY_UNIT_KILLED_REWARD_MODIFIER
 
-                self.total_dmg_reward += reward
+                self.accumulative_reward += reward
             except:
                 continue
 
@@ -80,6 +80,6 @@ class RewardDamageAndUnitWithStepPunishment(Rewards):
                     punishment = \
                         (dead_unit_cost.minerals + dead_unit_cost.vespene) * common.ALLY_UNIT_KILLED_REWARD_MODIFIER
 
-                    self.total_dmg_reward -= punishment
+                    self.accumulative_reward -= punishment
             except:
                 continue

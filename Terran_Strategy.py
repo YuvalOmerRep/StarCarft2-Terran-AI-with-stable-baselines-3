@@ -62,6 +62,7 @@ class Random_Strategy(Terran_Strategy):
             [self.create_build_addon(UId.FACTORYTECHLAB, UId.FACTORY, AbilityId.BUILD_TECHLAB_FACTORY), "build_factory_techlab"],
             [self.create_build_addon(UId.STARPORTREACTOR, UId.STARPORT, AbilityId.BUILD_REACTOR_STARPORT), "build_starport_reactor"],
             [self.create_build_addon(UId.STARPORTTECHLAB, UId.STARPORT, AbilityId.BUILD_TECHLAB_STARPORT), "build_starport_techlab"],
+            [self.upgrade_to_orbital, "upgrade_to_orbital"],
             [self.noop, "don't build structure"],
         ]
 
@@ -155,14 +156,16 @@ class Random_Strategy(Terran_Strategy):
         The main method of the strategy class, handles the action execution as dictated by the model.
         """
         async with asyncio.TaskGroup() as tg:
-            tg.create_task(self.build_actions[actions[0]][0]())
-            tg.create_task(self.manufacture_unit_actions[actions[1]][0]())
-            tg.create_task(self.research_upgrade_actions[actions[2]][0]())
-            tg.create_task(self.command_center_abilities[actions[3]][0]())
-            tg.create_task(self.army_commands[actions[4]][0]())
+            reward1 = tg.create_task(self.build_actions[actions[0]][0]())
+            reward2 = tg.create_task(self.manufacture_unit_actions[actions[1]][0]())
+            reward3 = tg.create_task(self.research_upgrade_actions[actions[2]][0]())
+            reward4 = tg.create_task(self.command_center_abilities[actions[3]][0]())
+            reward5 = tg.create_task(self.army_commands[actions[4]][0]())
+
+        return reward1.result() + reward2.result() + reward3.result() + reward4.result() + reward5.result()
 
     async def noop(self):
-        return
+        return GB.VALID_COMMAND_REWARD
 
     async def expand_now(self):
         if await self.agent.get_next_expansion():
@@ -256,8 +259,9 @@ class Random_Strategy(Terran_Strategy):
 
                 if builder is not None:
                     self.agent.do(builder.build(building_uid, pos))
+                    return GB.VALID_COMMAND_REWARD
 
-            return GB.VALID_COMMAND_REWARD
+            return GB.INVALID_COMMAND_REWARD
 
         return inner
 
@@ -265,20 +269,6 @@ class Random_Strategy(Terran_Strategy):
         if self.agent.structures.closer_than(radius + GB.STRUCTURES_SAFE_RADIUS, position).exists:
             return False
         return True
-
-    async def build_supply_depo(self):
-        """
-        A method that builds a supply depo at a random location if we can afford
-        building one.
-
-        :return: Reward of action depending on it's success
-        """
-        if self.agent.can_afford(UId.SUPPLYDEPOT):
-            await self.create_build_structure(UId.SUPPLYDEPOT)
-
-            return GB.VALID_COMMAND_REWARD
-
-        return GB.INVALID_COMMAND_REWARD
 
 
     async def build_refinery(self):
@@ -309,15 +299,19 @@ class Random_Strategy(Terran_Strategy):
         """
         if self.agent.townhalls.idle:
             for town_hall in self.agent.townhalls.idle:
+                if self.agent.can_afford(UId.SCV):
+                    town_hall.train(UId.SCV, queue=True)
+                    return GB.GOOD_COMMAND_REWARD
+
+        return GB.INVALID_COMMAND_REWARD
+
+    async def upgrade_to_orbital(self):
+        if self.agent.townhalls.idle:
+            for town_hall in self.agent.townhalls.idle:
                 if town_hall.type_id == UId.COMMANDCENTER \
                         and self.agent.can_afford(UId.ORBITALCOMMAND, check_supply_cost=False):
                     self.agent.do(town_hall(AbilityId.UPGRADETOORBITAL_ORBITALCOMMAND))
                     return GB.VALID_COMMAND_REWARD
-
-                elif self.agent.can_afford(UId.SCV):
-                    town_hall.train(UId.SCV, queue=True)
-                    return GB.VALID_COMMAND_REWARD
-
         return GB.INVALID_COMMAND_REWARD
 
     async def drop_mule(self):
@@ -388,7 +382,7 @@ class Random_Strategy(Terran_Strategy):
                 if idle_structures:
                     structure = idle_structures.random
                     structure.train(uid_unit, queue=True)
-                    return GB.VALID_COMMAND_REWARD
+                    return GB.GOOD_COMMAND_REWARD
 
             return GB.INVALID_COMMAND_REWARD
 
@@ -466,7 +460,7 @@ class Random_Strategy(Terran_Strategy):
                 engibay = self.agent.structures(UId.ENGINEERINGBAY).idle
                 if engibay:
                     engibay.random.research(upid1)
-                    return GB.VALID_COMMAND_REWARD
+                    return GB.GOOD_COMMAND_REWARD
 
         elif self.agent.structures(UId.ARMORY).ready \
                 and not self.agent.already_pending_upgrade(upid2):
@@ -474,7 +468,7 @@ class Random_Strategy(Terran_Strategy):
                 engibay = self.agent.structures(UId.ENGINEERINGBAY).idle
                 if engibay:
                     engibay.random.research(upid2)
-                    return GB.VALID_COMMAND_REWARD
+                    return GB.GOOD_COMMAND_REWARD
 
         elif not self.agent.already_pending_upgrade(upid3):
             if self.agent.can_afford(upid3):
@@ -482,7 +476,7 @@ class Random_Strategy(Terran_Strategy):
                 engibay = self.agent.structures(UId.ENGINEERINGBAY).idle
                 if engibay:
                     engibay.random.research(upid3)
-                    return GB.VALID_COMMAND_REWARD
+                    return GB.GOOD_COMMAND_REWARD
 
         return GB.INVALID_COMMAND_REWARD
 
@@ -511,7 +505,7 @@ class Random_Strategy(Terran_Strategy):
         """
         if self.agent.structures(UId.BARRACKSTECHLAB).idle and self.agent.can_afford(upid):
             self.agent.structures(UId.BARRACKSTECHLAB).idle.random.research(upid)
-            return GB.VALID_COMMAND_REWARD
+            return GB.GOOD_COMMAND_REWARD
 
         return GB.INVALID_COMMAND_REWARD
 
