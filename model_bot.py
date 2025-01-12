@@ -136,13 +136,13 @@ def run_game_with_model_bot(conn, difficulty: Difficulty):
 
     if result == Result.Victory:
         print("\033[92mWinner Winner chicken dinner!\033[0m")
-        reward = 10000
+        reward = 1000000
     elif result == Result.Tie:
         print("\033[92mTie that Tie!\033[0m")
         reward = 0
     else:
         print("\033[92mLost Once again\033[0m")
-        reward = -1000
+        reward = -100000
 
 
     reward_after_time_punishment =  reward * common.step_punishment[last_iteration]

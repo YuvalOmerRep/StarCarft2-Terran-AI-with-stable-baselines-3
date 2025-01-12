@@ -231,7 +231,7 @@ class Random_Strategy(Terran_Strategy):
         :param add_on: does the building specified by building_uid needs space for an add_on
         """
         async def inner():
-            if not self.agent.can_afford(building_uid):
+            if not self.agent.can_afford(building_uid) or (building_uid == UId.ENGINEERINGBAY and self.agent.structures(UId.ENGINEERINGBAY).amount >= GB.MAX_AMOUNT_ENGIBAYS):
                 return GB.INVALID_COMMAND_REWARD
 
             for i in range(GB.NUM_OF_RETRIES):
@@ -259,9 +259,9 @@ class Random_Strategy(Terran_Strategy):
 
                 if builder is not None:
                     self.agent.do(builder.build(building_uid, pos))
-                    return GB.VALID_COMMAND_REWARD
+                    return GB.GOOD_COMMAND_REWARD
 
-            return GB.INVALID_COMMAND_REWARD
+            return GB.VALID_COMMAND_REWARD
 
         return inner
 

@@ -54,10 +54,6 @@ class RewardDamageAndUnitWithStepPunishment(Rewards):
         except:
             return 0
 
-    def _give_worker_actions_bonus(self, reward):
-        if self.agent.units(UId.SCV):
-            reward += (self.agent.units(UId.SCV).amount - common.STARTING_WORKER_AMOUNT) * common.HARVEST_BONUS
-        return reward
 
     def _give_reward_for_killing(self, enemy_dead: list[UId]):
         for enemy_dead_unit in enemy_dead:

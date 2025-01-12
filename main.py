@@ -4,10 +4,10 @@ from sc2.data import Difficulty
 
 from train import train_new_model, load_and_train
 
-COMMAND_TO_DIFFICULTY = {"veryHard": Difficulty.VeryHard,
+COMMAND_TO_DIFFICULTY = {"veryhard": Difficulty.VeryHard,
                          "harder": Difficulty.Harder,
                          "hard": Difficulty.Hard,
-                         "mediumHard": Difficulty.MediumHard,
+                         "mediumhard": Difficulty.MediumHard,
                          "medium": Difficulty.Medium,
                          "easy": Difficulty.Easy}
 
@@ -24,13 +24,13 @@ def main(argv, argc):
         if argc == 3:
             train_new_model(argv[2])
         else:
-            train_new_model(argv[2], get_difficulty_from_string(argv[3]))
+            train_new_model(argv[2], get_difficulty_from_string(argv[3].lower()))
 
     elif  argc >= 4 and argv[1] == "train":
         if argc == 4:
             load_and_train(argv[2], argv[3])
         else:
-            load_and_train(argv[2], argv[3], get_difficulty_from_string(argv[4]))
+            load_and_train(argv[2], argv[3], get_difficulty_from_string(argv[4].lower()))
     else:
         raise Exception("improper use")
 
