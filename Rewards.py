@@ -39,20 +39,14 @@ class RewardDamageAndUnitWithStepPunishment(Rewards):
         for unit in self.agent.units:
             if unit.is_structure or unit.type_id == UId.SCV:
                 continue
-            reward += self._give_bonus_for_unit_type_and_upgrade_levels(unit.type_id, common.UNIT_REWARD_MODIFIER, unit.attack_upgrade_level, unit.armor_upgrade_level)
+            reward_for_unit = RewardDamageAndUnitWithStepPunishment.give_bonus_for_unit_type_and_upgrade_levels(self.agent, unit.type_id, common.UNIT_REWARD_MODIFIER, unit.attack_upgrade_level, unit.armor_upgrade_level)
+            if unit.is_attacking:
+                reward_for_unit += reward_for_unit * common.UNIT_IS_ATTACKING_REWARD_MODIFIER
+            reward_for_unit *= unit.health_percentage
 
-        scv_reward = self._give_bonus_for_unit_type_and_upgrade_levels(UId.SCV, common.UNIT_REWARD_MODIFIER, 0, 0)
+        scv_reward = RewardDamageAndUnitWithStepPunishment.give_bonus_for_unit_type_and_upgrade_levels(self.agent, UId.SCV, common.UNIT_REWARD_MODIFIER, 0, 0)
         reward += scv_reward * (self.agent.supply_workers - common.STARTING_WORKER_AMOUNT)
         return reward
-
-    def _give_bonus_for_unit_type_and_upgrade_levels(self, uid: UId, reward_modifier: float, attack_upgrade_level: int, armor_upgrade_level: int) -> float:
-        try:
-            cost = self.agent.calculate_cost(uid)
-            reward_for_unit = (cost.minerals + cost.vespene) * reward_modifier
-            reward_for_unit += reward_for_unit * ((attack_upgrade_level + armor_upgrade_level) * common.UNIT_UPGRADE_REWARD_MODIFIER)
-            return reward_for_unit
-        except:
-            return 0
 
 
     def _give_reward_for_killing(self, enemy_dead: list[UId]):
@@ -79,3 +73,13 @@ class RewardDamageAndUnitWithStepPunishment(Rewards):
                     self.accumulative_reward -= punishment
             except:
                 continue
+
+    @staticmethod
+    def give_bonus_for_unit_type_and_upgrade_levels(agent: BotAI, uid: UId, reward_modifier: float, attack_upgrade_level: int, armor_upgrade_level: int) -> float:
+        try:
+            cost = agent.calculate_cost(uid)
+            reward_for_unit = (cost.minerals + cost.vespene) * reward_modifier
+            reward_for_unit += reward_for_unit * ((attack_upgrade_level + armor_upgrade_level) * common.UNIT_UPGRADE_REWARD_MODIFIER)
+            return reward_for_unit
+        except:
+            return 0

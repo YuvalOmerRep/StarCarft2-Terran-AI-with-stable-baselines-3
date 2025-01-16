@@ -5,7 +5,8 @@ from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId as UId
 from sc2.ids.upgrade_id import UpgradeId as UpId
 from sc2.unit import AbilityId
-import common as GB
+import common
+from Rewards import RewardDamageAndUnitWithStepPunishment
 
 
 class Terran_Strategy:
@@ -165,14 +166,14 @@ class Random_Strategy(Terran_Strategy):
         return reward1.result() + reward2.result() + reward3.result() + reward4.result() + reward5.result()
 
     async def noop(self):
-        return GB.VALID_COMMAND_REWARD
+        return common.VALID_COMMAND_REWARD
 
     async def expand_now(self):
         if await self.agent.get_next_expansion():
             await self.agent.expand_now()
-            return GB.VALID_COMMAND_REWARD
+            return common.VALID_COMMAND_REWARD
 
-        return GB.INVALID_COMMAND_REWARD
+        return common.INVALID_COMMAND_REWARD
 
     async def get_position_for_depot(self):
         """
@@ -184,19 +185,19 @@ class Random_Strategy(Terran_Strategy):
         if self.agent.townhalls:
             townhall_pos = self.agent.townhalls.random.position
             if townhall_pos == self.agent.start_location.position:
-                minerals = self.agent.mineral_field.closer_than(GB.MINERAL_CLOSER_THAN_DISTANCE,
+                minerals = self.agent.mineral_field.closer_than(common.MINERAL_CLOSER_THAN_DISTANCE,
                                                                 self.agent.start_location)
                 if minerals:
                     return self.agent.start_location.towards_with_random_angle(minerals.random.position,
                                                                                random.randrange(
-                                                                                   GB.RANDOM_BEHIND_MINERALS_RANGE_MIN,
-                                                                                   GB.RANDOM_BEHIND_MINERALS_RANGE_MAX))
+                                                                                   common.RANDOM_BEHIND_MINERALS_RANGE_MIN,
+                                                                                   common.RANDOM_BEHIND_MINERALS_RANGE_MAX))
             return await self.get_position_towards_enemy_from_place(townhall_pos)
 
         return self.agent.start_location.towards_with_random_angle(self.agent.enemy_start_locations[0],
                                                                    random.randrange(
-                                                                       GB.RANDOM_BEHIND_MINERALS_RANGE_MIN,
-                                                                       GB.RANDOM_BEHIND_MINERALS_RANGE_MAX))
+                                                                       common.RANDOM_BEHIND_MINERALS_RANGE_MIN,
+                                                                       common.RANDOM_BEHIND_MINERALS_RANGE_MAX))
 
     async def get_position_towards_enemy_from_place(self, place):
         """
@@ -206,8 +207,8 @@ class Random_Strategy(Terran_Strategy):
         :return: the position towards the enemy start location
         """
         return place.towards_with_random_angle(
-            self.agent.enemy_start_locations[0], random.randrange(GB.RANDOM_BUILDING_RANGE_MIN,
-                                                                  GB.RANDOM_BUILDING_RANGE_MAX), GB.RANDOM_ANGLE_LIMIT)
+            self.agent.enemy_start_locations[0], random.randrange(common.RANDOM_BUILDING_RANGE_MIN,
+                                                                  common.RANDOM_BUILDING_RANGE_MAX), common.RANDOM_ANGLE_LIMIT)
 
     async def get_position_for_building(self):
         """
@@ -231,21 +232,21 @@ class Random_Strategy(Terran_Strategy):
         :param add_on: does the building specified by building_uid needs space for an add_on
         """
         async def inner():
-            if not self.agent.can_afford(building_uid) or (building_uid == UId.ENGINEERINGBAY and self.agent.structures(UId.ENGINEERINGBAY).amount >= GB.MAX_AMOUNT_ENGIBAYS):
-                return GB.INVALID_COMMAND_REWARD
+            if not self.agent.can_afford(building_uid):
+                return common.INVALID_COMMAND_REWARD
 
-            for i in range(GB.NUM_OF_RETRIES):
+            for i in range(common.NUM_OF_RETRIES):
                 if building_uid == UId.SUPPLYDEPOT:
                     pos = await self.get_position_for_depot()
-                    if not await self.check_building_position_radius(pos, GB.DEPO_RADIUS):
+                    if not await self.check_building_position_radius(pos, common.DEPO_RADIUS):
                         continue
                 else:
                     if add_on:
-                        addon_size = GB.DEPO_RADIUS
+                        addon_size = common.DEPO_RADIUS
                     else:
                         addon_size = 0
                     pos = await self.get_position_for_building()
-                    if not await self.check_building_position_radius(pos, GB.BUILDING_RADIUS + addon_size):
+                    if not await self.check_building_position_radius(pos, common.BUILDING_RADIUS + addon_size):
                         continue
 
                 if not await self.agent.can_place_single(building_uid, pos):
@@ -259,14 +260,13 @@ class Random_Strategy(Terran_Strategy):
 
                 if builder is not None:
                     self.agent.do(builder.build(building_uid, pos))
-                    return GB.GOOD_COMMAND_REWARD
 
-            return GB.VALID_COMMAND_REWARD
+            return common.VALID_COMMAND_REWARD
 
         return inner
 
     async def check_building_position_radius(self, position, radius):
-        if self.agent.structures.closer_than(radius + GB.STRUCTURES_SAFE_RADIUS, position).exists:
+        if self.agent.structures.closer_than(radius + common.STRUCTURES_SAFE_RADIUS, position).exists:
             return False
         return True
 
@@ -279,14 +279,14 @@ class Random_Strategy(Terran_Strategy):
         :return: Reward of action depending on it's success
         """
         if self.agent.can_afford(UId.REFINERY) and self.agent.townhalls:
-            vespenes = self.agent.vespene_geyser.closer_than(GB.MINERAL_CLOSER_THAN_DISTANCE,
+            vespenes = self.agent.vespene_geyser.closer_than(common.MINERAL_CLOSER_THAN_DISTANCE,
                                                              self.agent.townhalls.random)
 
             if vespenes:
                 await self.agent.build(UId.REFINERY, vespenes.random)
-                return GB.VALID_COMMAND_REWARD
+                return common.VALID_COMMAND_REWARD
 
-        return GB.INVALID_COMMAND_REWARD
+        return common.INVALID_COMMAND_REWARD
 
 
     async def build_worker(self):
@@ -297,13 +297,15 @@ class Random_Strategy(Terran_Strategy):
 
         :return: Reward of action depending on it's success
         """
-        if self.agent.townhalls.idle:
-            for town_hall in self.agent.townhalls.idle:
-                if self.agent.can_afford(UId.SCV):
-                    town_hall.train(UId.SCV, queue=True)
-                    return GB.GOOD_COMMAND_REWARD
+        if not self.agent.can_afford(UId.SCV):
+            return common.INVALID_COMMAND_REWARD
 
-        return GB.INVALID_COMMAND_REWARD
+        if self.agent.townhalls.ready:
+            town_hall = self.agent.townhalls.prefer_idle[0]
+            town_hall.train(UId.SCV, queue=True)
+            return RewardDamageAndUnitWithStepPunishment.give_bonus_for_unit_type_and_upgrade_levels(self.agent, UId.SCV, common.VALID_CREATE_UNIT_COMMAND_REWARD_MOD, 0, 0)
+
+        return common.INVALID_COMMAND_REWARD
 
     async def upgrade_to_orbital(self):
         if self.agent.townhalls.idle:
@@ -311,8 +313,8 @@ class Random_Strategy(Terran_Strategy):
                 if town_hall.type_id == UId.COMMANDCENTER \
                         and self.agent.can_afford(UId.ORBITALCOMMAND, check_supply_cost=False):
                     self.agent.do(town_hall(AbilityId.UPGRADETOORBITAL_ORBITALCOMMAND))
-                    return GB.VALID_COMMAND_REWARD
-        return GB.INVALID_COMMAND_REWARD
+                    return common.VALID_COMMAND_REWARD
+        return common.INVALID_COMMAND_REWARD
 
     async def drop_mule(self):
         """
@@ -322,12 +324,12 @@ class Random_Strategy(Terran_Strategy):
         :return: Reward of action depending on it's success
         """
         for town_hall in self.agent.townhalls:
-            if town_hall.type_id == UId.ORBITALCOMMAND and town_hall.energy >= GB.ENERGY_FOR_MULE_OR_SCAN:
+            if town_hall.type_id == UId.ORBITALCOMMAND and town_hall.energy >= common.ENERGY_FOR_MULE_OR_SCAN:
                 self.agent.do(town_hall(AbilityId.CALLDOWNMULE_CALLDOWNMULE,
                                         self.agent.mineral_field.closest_to(town_hall)))
-                return GB.VALID_COMMAND_REWARD
+                return common.VALID_COMMAND_REWARD
 
-        return GB.INVALID_COMMAND_REWARD
+        return common.INVALID_COMMAND_REWARD
 
     async def scan_army(self):
         """
@@ -337,7 +339,7 @@ class Random_Strategy(Terran_Strategy):
         :return: Reward of action depending on it's success
         """
         for town_hall in self.agent.townhalls:
-            if town_hall.type_id == UId.ORBITALCOMMAND and town_hall.energy >= GB.ENERGY_FOR_MULE_OR_SCAN:
+            if town_hall.type_id == UId.ORBITALCOMMAND and town_hall.energy >= common.ENERGY_FOR_MULE_OR_SCAN:
                 if self.agent.units(UId.MARINE):
                     unit = UId.MARINE
                 elif self.agent.units(UId.MARAUDER):
@@ -346,13 +348,13 @@ class Random_Strategy(Terran_Strategy):
                     unit = UId.SIEGETANK
 
                 else:
-                    return GB.INVALID_COMMAND_REWARD
+                    return common.INVALID_COMMAND_REWARD
 
                 self.agent.do(town_hall(AbilityId.SCANNERSWEEP_SCAN,
                                         self.agent.units(unit).random.position))
-                return GB.VALID_COMMAND_REWARD
+                return common.VALID_COMMAND_REWARD
 
-        return GB.INVALID_COMMAND_REWARD
+        return common.INVALID_COMMAND_REWARD
 
     def scan_location(self, location):
         """
@@ -363,28 +365,25 @@ class Random_Strategy(Terran_Strategy):
         :return: Reward of action depending on it's success
         """
         for town_hall in self.agent.townhalls:
-            if town_hall.type_id == UId.ORBITALCOMMAND and town_hall.energy >= GB.ENERGY_FOR_MULE_OR_SCAN:
+            if town_hall.type_id == UId.ORBITALCOMMAND and town_hall.energy >= common.ENERGY_FOR_MULE_OR_SCAN:
 
                 self.agent.do(town_hall(AbilityId.SCANNERSWEEP_SCAN, location))
-                return GB.VALID_COMMAND_REWARD
+                return common.VALID_COMMAND_REWARD
 
-        return GB.INVALID_COMMAND_REWARD
+        return common.INVALID_COMMAND_REWARD
 
 
     def create_build_unit_from_structure(self, uid_building, uid_unit):
         async def inner():
             if not self.agent.can_afford(uid_unit):
-                return GB.INVALID_COMMAND_REWARD
+                return common.INVALID_COMMAND_REWARD
 
             ready_structures = self.agent.structures(uid_building).ready
             if ready_structures:
-                idle_structures = ready_structures.idle
-                if idle_structures:
-                    structure = idle_structures.random
-                    structure.train(uid_unit, queue=True)
-                    return GB.GOOD_COMMAND_REWARD
-
-            return GB.INVALID_COMMAND_REWARD
+                structure = ready_structures.prefer_idle[0]
+                structure.train(uid_unit, queue=True)
+                return RewardDamageAndUnitWithStepPunishment.give_bonus_for_unit_type_and_upgrade_levels(self.agent, UId.SCV, common.VALID_CREATE_UNIT_COMMAND_REWARD_MOD,0, 0)
+            return common.INVALID_COMMAND_REWARD
 
         return inner
 
@@ -400,7 +399,7 @@ class Random_Strategy(Terran_Strategy):
         """
         async def inner():
             if not self.agent.can_afford(addon_uid):
-                return GB.INVALID_COMMAND_REWARD
+                return common.INVALID_COMMAND_REWARD
 
             ready_uid_structures = self.agent.structures(structure_uid).ready
             if ready_uid_structures:
@@ -417,9 +416,9 @@ class Random_Strategy(Terran_Strategy):
 
                         if can_place:
                             self.agent.do(structure_without_addon(create_addon_ability))
-                            return GB.VALID_COMMAND_REWARD
+                            return common.VALID_COMMAND_REWARD
 
-            return GB.INVALID_COMMAND_REWARD
+            return common.INVALID_COMMAND_REWARD
 
         return inner
 
@@ -460,7 +459,7 @@ class Random_Strategy(Terran_Strategy):
                 engibay = self.agent.structures(UId.ENGINEERINGBAY).idle
                 if engibay:
                     engibay.random.research(upid1)
-                    return GB.GOOD_COMMAND_REWARD
+                    return common.VALID_COMMAND_REWARD
 
         elif self.agent.structures(UId.ARMORY).ready \
                 and not self.agent.already_pending_upgrade(upid2):
@@ -468,7 +467,7 @@ class Random_Strategy(Terran_Strategy):
                 engibay = self.agent.structures(UId.ENGINEERINGBAY).idle
                 if engibay:
                     engibay.random.research(upid2)
-                    return GB.GOOD_COMMAND_REWARD
+                    return common.VALID_COMMAND_REWARD
 
         elif not self.agent.already_pending_upgrade(upid3):
             if self.agent.can_afford(upid3):
@@ -476,9 +475,9 @@ class Random_Strategy(Terran_Strategy):
                 engibay = self.agent.structures(UId.ENGINEERINGBAY).idle
                 if engibay:
                     engibay.random.research(upid3)
-                    return GB.GOOD_COMMAND_REWARD
+                    return common.GOOD_COMMAND_REWARD
 
-        return GB.INVALID_COMMAND_REWARD
+        return common.INVALID_COMMAND_REWARD
 
     async def upgrade_marine(self):
         """
@@ -505,9 +504,9 @@ class Random_Strategy(Terran_Strategy):
         """
         if self.agent.structures(UId.BARRACKSTECHLAB).idle and self.agent.can_afford(upid):
             self.agent.structures(UId.BARRACKSTECHLAB).idle.random.research(upid)
-            return GB.GOOD_COMMAND_REWARD
+            return common.GOOD_COMMAND_REWARD
 
-        return GB.INVALID_COMMAND_REWARD
+        return common.INVALID_COMMAND_REWARD
 
     async def stim_army(self):
         """
@@ -523,7 +522,7 @@ class Random_Strategy(Terran_Strategy):
         for marauder in self.agent.units(UId.MARAUDER):
             self.agent.do(marauder(AbilityId.EFFECT_STIM_MARINE))
 
-        return GB.VALID_COMMAND_REWARD
+        return common.VALID_COMMAND_REWARD
 
     async def siege_tanks(self):
         """
@@ -547,9 +546,9 @@ class Random_Strategy(Terran_Strategy):
             for tank in tanks:
                 self.agent.do(tank(ability))
 
-            return GB.VALID_COMMAND_REWARD
+            return common.VALID_COMMAND_REWARD
 
-        return GB.INVALID_COMMAND_REWARD
+        return common.INVALID_COMMAND_REWARD
 
     async def attack_enemy_units(self):
         """
@@ -560,9 +559,9 @@ class Random_Strategy(Terran_Strategy):
         """
         if self.agent.enemy_units:
             await self.attack_enemy(self.agent.enemy_units)
-            return GB.VALID_COMMAND_REWARD
+            return common.VALID_COMMAND_REWARD
         else:
-            return GB.INVALID_COMMAND_REWARD
+            return common.INVALID_COMMAND_REWARD
 
     async def attack_enemy_structures(self):
         """
@@ -573,9 +572,9 @@ class Random_Strategy(Terran_Strategy):
         """
         if self.agent.enemy_structures:
             await self.attack_enemy(self.agent.enemy_structures)
-            return GB.VALID_COMMAND_REWARD
+            return common.VALID_COMMAND_REWARD
 
-        return GB.INVALID_COMMAND_REWARD
+        return common.INVALID_COMMAND_REWARD
 
     async def attack_enemy(self, what_to_attack):
         await self.attack_position_with_unit_type(UId.MARINE, what_to_attack)
@@ -616,59 +615,59 @@ class Random_Strategy(Terran_Strategy):
 
     async def gather_units_at_1(self):
         await self.gather_units_at(self.locations_sorted[0])
-        return GB.VALID_COMMAND_REWARD
+        return common.VALID_COMMAND_REWARD
 
     async def gather_units_at_2(self):
         await self.gather_units_at(self.locations_sorted[1])
-        return GB.VALID_COMMAND_REWARD
+        return common.VALID_COMMAND_REWARD
 
     async def gather_units_at_3(self):
         await self.gather_units_at(self.locations_sorted[2])
-        return GB.VALID_COMMAND_REWARD
+        return common.VALID_COMMAND_REWARD
 
     async def gather_units_at_4(self):
         await self.gather_units_at(self.locations_sorted[3])
-        return GB.VALID_COMMAND_REWARD
+        return common.VALID_COMMAND_REWARD
 
     async def gather_units_at_5(self):
         await self.gather_units_at(self.locations_sorted[4])
-        return GB.VALID_COMMAND_REWARD
+        return common.VALID_COMMAND_REWARD
 
     async def gather_units_at_6(self):
         await self.gather_units_at(self.locations_sorted[5])
-        return GB.VALID_COMMAND_REWARD
+        return common.VALID_COMMAND_REWARD
 
     async def gather_units_at_7(self):
         await self.gather_units_at(self.locations_sorted[6])
-        return GB.VALID_COMMAND_REWARD
+        return common.VALID_COMMAND_REWARD
 
     async def gather_units_at_8(self):
         await self.gather_units_at(self.locations_sorted[7])
-        return GB.VALID_COMMAND_REWARD
+        return common.VALID_COMMAND_REWARD
 
     async def gather_units_at_9(self):
         await self.gather_units_at(self.locations_sorted[8])
-        return GB.VALID_COMMAND_REWARD
+        return common.VALID_COMMAND_REWARD
 
     async def gather_units_at_10(self):
         await self.gather_units_at(self.locations_sorted[9])
-        return GB.VALID_COMMAND_REWARD
+        return common.VALID_COMMAND_REWARD
 
     async def gather_units_at_11(self):
         await self.gather_units_at(self.locations_sorted[10])
-        return GB.VALID_COMMAND_REWARD
+        return common.VALID_COMMAND_REWARD
 
     async def gather_units_at_12(self):
         await self.gather_units_at(self.locations_sorted[11])
-        return GB.VALID_COMMAND_REWARD
+        return common.VALID_COMMAND_REWARD
 
     async def gather_units_at_13(self):
         await self.gather_units_at(self.locations_sorted[12])
-        return GB.VALID_COMMAND_REWARD
+        return common.VALID_COMMAND_REWARD
 
     async def gather_units_at_14(self):
         await self.gather_units_at(self.locations_sorted[13])
-        return GB.VALID_COMMAND_REWARD
+        return common.VALID_COMMAND_REWARD
 
     async def scan_location_at_1(self):
         return self.scan_location(self.locations_sorted[0])
@@ -747,7 +746,7 @@ class Random_Strategy(Terran_Strategy):
 
         await self.hold_position_one_unit_type(UId.THOR)
 
-        return GB.VALID_COMMAND_REWARD
+        return common.VALID_COMMAND_REWARD
 
     async def hold_position_one_unit_type(self, uid):
         """
