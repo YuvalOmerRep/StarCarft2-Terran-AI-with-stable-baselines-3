@@ -3,13 +3,19 @@ import numpy as np
 from sc2.ids.unit_typeid import UnitTypeId as UId
 from sc2.ids.buff_id import BuffId as BId
 from sc2.ids.upgrade_id import UpgradeId as UpId
+from sc2.units import Units
+
 import common
 from Utils import MultipleDiscreteMemory, get_x_y_of_pos
 
 
-def get_amount(uid: UId, group) -> int:
+def get_amount(uid: UId, group: Units, idle: bool=False) -> int:
     if group(uid):
-        return group(uid).amount
+        units = group(uid)
+        if idle:
+            return units.idle.amount
+
+        return units.amount
     else:
         return 0
 
@@ -42,6 +48,10 @@ class Extractor:
         vector += \
             [get_amount(uid, self.bot_to_extract_from.structures)
              for uid in common.terran_structures_list]  # ally_buildings
+
+        vector += \
+            [get_amount(uid, self.bot_to_extract_from.structures, True)
+             for uid in common.terran_structures_list]  # ally_idle_buildings
 
         vector += \
             [get_amount(uid, self.bot_to_extract_from.enemy_units)

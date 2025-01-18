@@ -2,6 +2,7 @@ import asyncio
 import random
 
 from sc2.bot_ai import BotAI
+from sc2.data import Alert
 from sc2.ids.unit_typeid import UnitTypeId as UId
 from sc2.ids.upgrade_id import UpgradeId as UpId
 from sc2.unit import AbilityId
@@ -158,12 +159,13 @@ class Random_Strategy(Terran_Strategy):
         """
         async with asyncio.TaskGroup() as tg:
             reward1 = tg.create_task(self.build_actions[actions[0]][0]())
-            reward2 = tg.create_task(self.manufacture_unit_actions[actions[1]][0]())
             reward3 = tg.create_task(self.research_upgrade_actions[actions[2]][0]())
             reward4 = tg.create_task(self.command_center_abilities[actions[3]][0]())
             reward5 = tg.create_task(self.army_commands[actions[4]][0]())
+        reward = reward1.result() + reward3.result() + reward4.result() + reward5.result()
 
-        return reward1.result() + reward2.result() + reward3.result() + reward4.result() + reward5.result()
+        reward += await self.manufacture_unit_actions[actions[1]][0]()
+        return reward
 
     async def noop(self):
         return common.VALID_COMMAND_REWARD
@@ -297,24 +299,24 @@ class Random_Strategy(Terran_Strategy):
 
         :return: Reward of action depending on it's success
         """
-        if not self.agent.can_afford(UId.SCV):
+        if not self.agent.can_afford(UId.SCV) or not self.agent.townhalls.ready or not self.agent.townhalls.ready.idle:
             return common.INVALID_COMMAND_REWARD
 
-        if self.agent.townhalls.ready:
-            town_hall = self.agent.townhalls.prefer_idle[0]
-            town_hall.train(UId.SCV, queue=True)
-            return RewardDamageAndUnitWithStepPunishment.give_bonus_for_unit_type_and_upgrade_levels(self.agent, UId.SCV, common.VALID_CREATE_UNIT_COMMAND_REWARD_MOD, 0, 0)
-
-        return common.INVALID_COMMAND_REWARD
+        town_hall = self.agent.townhalls.ready.idle.first
+        town_hall.train(UId.SCV)
+        return RewardDamageAndUnitWithStepPunishment.give_bonus_for_unit_type_and_upgrade_levels(self.agent, UId.SCV, common.VALID_CREATE_UNIT_COMMAND_REWARD_MOD, 0, 0)
 
     async def upgrade_to_orbital(self):
-        if self.agent.townhalls.idle:
-            for town_hall in self.agent.townhalls.idle:
-                if town_hall.type_id == UId.COMMANDCENTER \
-                        and self.agent.can_afford(UId.ORBITALCOMMAND, check_supply_cost=False):
-                    self.agent.do(town_hall(AbilityId.UPGRADETOORBITAL_ORBITALCOMMAND))
-                    return common.VALID_COMMAND_REWARD
-        return common.INVALID_COMMAND_REWARD
+        if not self.agent.can_afford(UId.ORBITALCOMMAND, check_supply_cost=False):
+            return common.INVALID_COMMAND_REWARD
+
+        command_centers = self.agent.units(UId.COMMANDCENTER)
+        if not command_centers.idle:
+            return common.INVALID_COMMAND_REWARD
+
+        town_hall = command_centers.idle.first
+        self.agent.do(town_hall(AbilityId.UPGRADETOORBITAL_ORBITALCOMMAND))
+        return common.VALID_COMMAND_REWARD
 
     async def drop_mule(self):
         """
@@ -323,10 +325,14 @@ class Random_Strategy(Terran_Strategy):
 
         :return: Reward of action depending on it's success
         """
-        for town_hall in self.agent.townhalls:
-            if town_hall.type_id == UId.ORBITALCOMMAND and town_hall.energy >= common.ENERGY_FOR_MULE_OR_SCAN:
-                self.agent.do(town_hall(AbilityId.CALLDOWNMULE_CALLDOWNMULE,
-                                        self.agent.mineral_field.closest_to(town_hall)))
+        orbital_commands = self.agent.units(UId.ORBITALCOMMAND)
+        if not orbital_commands.ready:
+            return common.INVALID_COMMAND_REWARD
+
+        for orbital_command in orbital_commands.ready:
+            if orbital_command.energy >= common.ENERGY_FOR_MULE_OR_SCAN:
+                self.agent.do(orbital_command(AbilityId.CALLDOWNMULE_CALLDOWNMULE,
+                                        self.agent.mineral_field.closest_to(orbital_command)))
                 return common.VALID_COMMAND_REWARD
 
         return common.INVALID_COMMAND_REWARD
@@ -379,11 +385,12 @@ class Random_Strategy(Terran_Strategy):
                 return common.INVALID_COMMAND_REWARD
 
             ready_structures = self.agent.structures(uid_building).ready
-            if ready_structures:
-                structure = ready_structures.prefer_idle[0]
-                structure.train(uid_unit, queue=True)
-                return RewardDamageAndUnitWithStepPunishment.give_bonus_for_unit_type_and_upgrade_levels(self.agent, UId.SCV, common.VALID_CREATE_UNIT_COMMAND_REWARD_MOD,0, 0)
-            return common.INVALID_COMMAND_REWARD
+            if not ready_structures or not ready_structures.idle:
+                return common.INVALID_COMMAND_REWARD
+
+            structure = ready_structures.idle.first
+            structure.train(uid_unit)
+            return RewardDamageAndUnitWithStepPunishment.give_bonus_for_unit_type_and_upgrade_levels(self.agent, UId.SCV, common.VALID_CREATE_UNIT_COMMAND_REWARD_MOD,0, 0)
 
         return inner
 
@@ -475,7 +482,7 @@ class Random_Strategy(Terran_Strategy):
                 engibay = self.agent.structures(UId.ENGINEERINGBAY).idle
                 if engibay:
                     engibay.random.research(upid3)
-                    return common.GOOD_COMMAND_REWARD
+                    return common.VALID_COMMAND_REWARD
 
         return common.INVALID_COMMAND_REWARD
 
@@ -504,7 +511,7 @@ class Random_Strategy(Terran_Strategy):
         """
         if self.agent.structures(UId.BARRACKSTECHLAB).idle and self.agent.can_afford(upid):
             self.agent.structures(UId.BARRACKSTECHLAB).idle.random.research(upid)
-            return common.GOOD_COMMAND_REWARD
+            return common.VALID_COMMAND_REWARD
 
         return common.INVALID_COMMAND_REWARD
 

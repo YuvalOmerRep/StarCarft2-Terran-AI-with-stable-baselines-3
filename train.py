@@ -23,10 +23,12 @@ def train_new_model(model_name: str, difficulty=Difficulty.Hard):
     :param model_name: The name of the new model, model will be saved in models/[model_name]
     :param difficulty: the difficulty of the bot the model trains against
     """
-    model_name = f"{model_name}_{int(time.time())}"
     env = Sc2Env(difficulty=difficulty)
     models_dir = f"models/{model_name}/"
     logdir = f"logs/{model_name}/"
+
+    if os.path.exists(models_dir):
+        raise Exception(f"model with name {model_name} already exists, use with train option if you want to continue training")
 
     if not os.path.exists(models_dir):
         os.makedirs(models_dir)
